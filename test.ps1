@@ -1,15 +1,45 @@
-﻿function newProcs {
+﻿if ((Get-WinSystemLocale).DisplayName -match 'english') {
+    $locProcName = 'Process'
+    $locIdProcName = 'ID Process'
+    $locWrkSetName = 'Working Set'
+    $locProcTimeName = '% processor time'
+    $locMemAvlName = '\memory\available bytes'
+    $locProcIdlName = '\process(idle)\% processor time'}
+elseif ((Get-WinSystemLocale).DisplayName -match 'русск') {
+    $locProcName = 'Процесс'
+    $locIdProcName = 'Идентификатор процесса'
+    $locWrkSetName = 'Рабочий набор'
+    $locProcTimeName = '% загруженности процессора'
+    $locMemAvlName = '\Память\Доступно байт'
+    $locProcIdlName = '\Процесс(idle)\% загруженности процессора'}
+else {Write-Host "System Locale is not English nor Russian. Script won't work"; Start-Sleep 3; return}
+
+Write-Host "Reading CPU properties..." -fo Yellow -ba Black
+$Processor = Get-WmiObject Win32_Processor
+$LogicalCPUs = ($Processor | Measure-Object -Property  NumberOfLogicalProcessors -Sum).Sum
+$totalMemory = (Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property capacity -Sum).sum /1mb
+Update-TypeData -TypeName procListType -DefaultDisplayPropertySet 'Name','Id','Memory','CPU' -ea SilentlyContinue #this is to display only props needed
+
+if ($Processor.Name -match 'E5-2637 v4') {$HT=1.2} # in 2022 I've changed it to be more precise. Checked, set to 1.2.
+else {$HT=1}
+
+$peakDateCpu = $peakDateMem = Get-Date
+$lastProcesses = @{ID=4294967296} #for the first compare-object in updProcs to show difference
+function GD {Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff'}
+
+function newProcs {
     do {
-        $Global:EnteredWords = 'ADC.Services'
+        $Global:EnteredWords = 'AChrome'
         $Global:ProcKeyWords = $Global:EnteredWords -split ','
         updProcs
         if ($Global:Processes) {
             $Global:Processes | select -Property Name,Description,Id -Unique | ft
-            $agree = Read-Host "Are you OK with these processes? Default is 'yes' (y/n)"
+            Write-Host "Are you OK with these processes? Default is 'yes' (y/n)"
+            $agree = "y"
         }
         else {
             Write-Host "There are no processes found with key word(s) '$EnteredWords'." -f Red -b Black
-            $agree = Read-Host "Are you OK with the key word(s) '$EnteredWords'? Default is 'yes' (y/n)"
+            $agree = "y"
         }
     } while ($agree -match 'n|N')
 }
@@ -117,3 +147,24 @@ Function updCounters {
 
 newProcs
 zero
+
+
+
+$timeProcs = (Get-Date)
+updProcs
+$msgProcs = "$(((Get-Date) - $timeProcs).TotalMilliseconds) ms for updProcs"
+$time1 = (Get-Date)
+updCounters
+#$msgProcs
+#"$(((Get-Date) - $time1).TotalMilliseconds) ms for updCounters"
+
+$sumCpu = 123
+$sumMem = 234
+
+$table | ft -AutoSize
+
+$diff = ((get-date) - $startTime)
+Write-Host ("Elapsed {0:00}:{1:mm}:{1:ss}  (F1) - help" -f [math]::Floor($diff.TotalHours),$diff) -f Gray
+
+Remove-Variable * -ea SilentlyContinue
+if ($host.Name -ne 'Visual Studio Code Host') {Read-Host}  # Checking if the code is running from Visual Studio Code
