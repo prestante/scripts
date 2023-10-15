@@ -12,12 +12,12 @@ elseif ((Get-WinSystemLocale).DisplayName -match 'русск') {
     $locProcTimeName = '% загруженности процессора'
     $locMemAvlName = '\Память\Доступно байт'
     $locProcIdlName = '\Процесс(idle)\% загруженности процессора'}
-else {Write-Host "System Locale is not English nor Russian. Script won't work"; Sleep 3; return}
+else {Write-Host "System Locale is not English nor Russian. Script won't work"; Start-Sleep 3; return}
 
 
 Write-Host "Reading CPU properties..." -fo Yellow -ba Black
 $Processor = Get-WmiObject Win32_Processor
-$LogicalCPUs = ($Processor | Measure -Property  NumberOfLogicalProcessors -Sum).Sum
+$LogicalCPUs = ($Processor | Measure-Object -Property  NumberOfLogicalProcessors -Sum).Sum
 $totalMemory = (Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property capacity -Sum).sum /1mb
 Update-TypeData -TypeName procListType -DefaultDisplayPropertySet 'Name','Id','Memory','CPU' -ea SilentlyContinue #this is to display only props needed
 
