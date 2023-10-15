@@ -1,9 +1,12 @@
-$files = gci "\\wtl-hp3b7-plc1.wtldev.net\Shared\bats" #| where {$_.Name -match 'test'}
+$sourceFiles = Get-ChildItem "\\wtlnas1.wtldev.net\Public\ADC\PS\bats Tecom" | Where-Object {$_.Name -match 'test.bat'}
 
-foreach ($file in $files) {
-
-    (Get-Content $file.FullName) -replace '\\Change\\galkovsky\.a','\Shared' -replace '\\\\fs\\change','\\wtl-hp3b7-plc1.wtldev.net\Shared' -replace '\\\\fs','\\wtl-hp3b7-plc1.wtldev.net' -replace '\\\\192\.168\.12\.3\\change','\\10.9.37.116\Shared' -replace '\\\\192\.168\.12\.3','\\10.9.37.116' -replace 'Cannot reach \\\\fs','Cannot reach \\wtl-hp3b7-plc1.wtldev.net' | Set-Content $file.FullName
-
+foreach ($sourceFile in $sourceFiles) {
+    $sourceFile.FullName
+    $sourcePath = $sourceFile.FullName -replace '\\bats Tecom\\([\w\s!@#$%^&()\-=]+)\.bat','\scripts\$1.ps1'
+    $batFill = "PowerShell -Command `"& '$sourcePath' some argument`""
+    $destPath = $sourceFile.FullName -replace '\\bats Tecom\\','\bats\'
+    if (!(Get-Item $destPath)) {New-Item $destPath}
+    $batFill | Set-Content $destPath
 }
 
-
+# PowerShell -Command "& '\\wtlnas1\Public\ADC\PS\scripts\Any Process CPU and MEM.ps1' some argument"
