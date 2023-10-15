@@ -1,8 +1,25 @@
 ﻿#same as Any Process CPU and MEM but with hardcoded ProcKeyWord
 
-if ((Get-WinSystemLocale).DisplayName -notmatch 'english') {Write-Host 'System Locale is not English. Try another script'; Sleep 3; return}Write-Host "Reading CPU properties..." -fo Yellow -ba Black
+if ((Get-WinSystemLocale).DisplayName -match 'english') {
+    $locProcName = 'Process'
+    $locIdProcName = 'ID Process'
+    $locWrkSetName = 'Working Set'
+    $locProcTimeName = '% processor time'
+    $locMemAvlName = '\memory\available bytes'
+    $locProcIdlName = '\process(idle)\% processor time'}
+elseif ((Get-WinSystemLocale).DisplayName -match 'русск') {
+    $locProcName = 'Процесс'
+    $locIdProcName = 'Идентификатор процесса'
+    $locWrkSetName = 'Рабочий набор'
+    $locProcTimeName = '% загруженности процессора'
+    $locMemAvlName = '\Память\Доступно байт'
+    $locProcIdlName = '\Процесс(idle)\% загруженности процессора'}
+else {Write-Host "System Locale is not English nor Russian. Script won't work"; Start-Sleep 3; return}
+
+
+Write-Host "Reading CPU properties..." -fo Yellow -ba Black
 $Processor = Get-WmiObject Win32_Processor
-$LogicalCPUs = ($Processor | Measure -Property  NumberOfLogicalProcessors -Sum).Sum
+$LogicalCPUs = ($Processor | Measure-Object -Property  NumberOfLogicalProcessors -Sum).Sum
 $totalMemory = (Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property capacity -Sum).sum /1mb
 Update-TypeData -TypeName procListType -DefaultDisplayPropertySet 'Name','Id','Memory','CPU' -ea SilentlyContinue #this is to display only props needed
 
@@ -10,20 +27,20 @@ if ($Processor.Name -match 'E5-2637 v4') {$HT=1.2} # in 2022 I've changed it to 
 else {$HT=1}
 
 $peakDateCpu = $peakDateMem = Get-Date
-$lastProcesses = @(1) #for the first compare-object in updProcs to show difference
+$Global:lastProcesses = @{ID=4294967296}  # impossible ID for a comparison in updProcs to show difference for the keywords with no processes
 function GD {Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff'}
 function newLog {
     $Global:logFile = "C:\PS\logs\$(Get-Date -Format 'yyyy-MM-dd HH-mm-ss').csv"
     New-Item -Path $Global:logFile -Force | Out-Null
     $string = "Time"
     foreach ($id in $Global:table) {if ($id.Id) {$string += ",$($id.Name)($($id.Id))MEM"; $string += ",$($id.Name)($($id.Id))CPU"}}
-    $string | Out-File $logFile -Append
+    $string | Out-File $logFile -Append ascii
 }
 function newLogSum {
     $Global:logFileSum = "C:\PS\logs\$(Get-Date -Format 'yyyy-MM-dd HH-mm-ss').csv"
-    New-Item -Path $Global:logFileSum -Force | Out-Null
+    New-Item -Path $Global:logFileSum -Force| Out-Null
     $string = "Time,SUM($($global:Processes.Count)procs)-MEM,SUM($($global:Processes.Count)procs)-CPU"
-    $string | Out-File $logFileSum -Append
+    $string | Out-File $logFileSum -Append ascii
 }
 function newProcs {
     do {
@@ -47,9 +64,10 @@ function updProcs {
         $Global:Processes = @()
         foreach ($ProcKeyWord in $Global:ProcKeyWords) {$Global:Processes += @(Get-Process | where {($_.Name -match $ProcKeyWord) -or ($_.Id -eq $ProcKeyWord) -or ($_.Description -match $ProcKeyWord)})}
     }
-    if (Compare-Object $Global:lastProcesses $Global:Processes) { #processes list has been changed
+    #if (Compare-Object $Global:lastProcesses $Global:Processes) { #processes list has been changed  # maybe just check equality of two sorted Id lists????
+    if ((($Global:Processes.Id | Sort) -join '') -ne (($Global:lastProcesses.Id | Sort) -join '')) {  #processes list has been changed
         $Global:table = @()
-        if ($Global:Processes) {$Global:table += $Global:Processes | %{
+        if ($Global:Processes.Name) {$Global:table += $Global:Processes | %{
             $obj = [pscustomobject]@{
                 Name = $_.Name  -replace '^Harris.Automation.ADC.Services.' -replace 'Host' -replace 'Service' -replace 'Validation'
                 Id = $_.Id
@@ -98,7 +116,7 @@ function updProcs {
             Memory = 0
             CPU = 0
         }
-        Get-Counter -ListSet process | Out-Null #just to refresh system counters data
+        Get-Counter -ListSet $locProcName | Out-Null #just to refresh system counters data
         if ($Global:logging) {newLog}
         if ($Global:loggingSum) {newLogSum}
     }
@@ -109,19 +127,19 @@ Function updCounters {
     $counterResults = New-Object System.Collections.Generic.List[System.Object]
     foreach ($uniq in ($Global:Processes.Name | select -Unique)) {
         0..((Get-Process -Name $uniq).Count - 1) | %{
-            $countersList.Add("\Process($uniq#$_)\ID Process"); 
-            $countersList.Add("\Process($uniq#$_)\Working Set")
-            $countersList.Add("\Process($uniq#$_)\% processor time"); 
+            $countersList.Add("\$locProcName($uniq#$_)\$locIdProcName"); 
+            $countersList.Add("\$locProcName($uniq#$_)\$locWrkSetName")
+            $countersList.Add("\$locProcName($uniq#$_)\$locProcTimeName"); 
         }
     }
-    $countersList.Add("\memory\available bytes")
-    $countersList.Add("\process(idle)\% processor time")
+    $countersList.Add($locMemAvlName)
+    $countersList.Add($locProcIdlName)
 
     #try {
         (Get-Counter $countersList -ea SilentlyContinue).CounterSamples | %{$counterResults.Add([pscustomobject]@{path = $_.path; cookedvalue = [decimal]$_.cookedvalue})}
     #} catch {Write-Host "$($Error[0].Exception.Message)" -f 13 -b 0}
     $sumMem = $sumCpu = [decimal]0
-    $counterResults | ?{$_.path -match 'id process'} | %{
+    $counterResults | ?{$_.path -match "$locIdProcName"} | %{
         $id = [int]($_.cookedvalue)
         $mem = $counterResults[($counterResults.IndexOf($_)+1)].cookedvalue/1mb
         $cpu = $counterResults[($counterResults.IndexOf($_)+2)].cookedvalue/$LogicalCPUs/$HT
@@ -173,13 +191,13 @@ do {
             if ($id.Id) {$string += ",$($id.Memory),$($id.CPU)"}
             #"$id" 
         }
-        $string | Out-File $logFile -Append
+        $string | Out-File $logFile -Append ascii
     }
     if ($loggingSum) {
         Write-Host $logFileSum -f Magenta
         $string = "$(GD)"
         $table | ?{$_.Name -eq 'Sum'} | %{$string += ",$($_.Memory),$($_.CPU)"}
-        $string | Out-File $logFileSum -Append
+        $string | Out-File $logFileSum -Append ascii
     }
     if ($infoCounter) {
         Write-Host (
