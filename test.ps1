@@ -24,7 +24,7 @@ if ($Processor.Name -match 'E5-2637 v4') {$HT=1.2} # in 2022 I've changed it to 
 else {$HT=1}
 
 $peakDateCpu = $peakDateMem = Get-Date
-$lastProcesses = @{ID=4294967296} #for the first compare-object in updProcs to show difference
+$Global:lastProcesses = @{ID=4294967296}  # impossible ID for a comparison in updProcs to show difference for the keywords with no processes
 function GD {Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff'}
 
 function newProcs {
@@ -60,6 +60,7 @@ function updProcs {
     }
     #if (Compare-Object $Global:lastProcesses $Global:Processes) { #processes list has been changed  # maybe just check equality of two sorted Id lists????
     if ((($Global:Processes.Id | Sort) -join '') -ne (($Global:lastProcesses.Id | Sort) -join '')) {  #processes list has been changed
+        Write-Error 'here'
         $Global:table = @()
         if ($Global:Processes.Name) {$Global:table += $Global:Processes | %{
             $obj = [pscustomobject]@{

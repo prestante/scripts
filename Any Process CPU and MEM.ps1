@@ -25,7 +25,7 @@ if ($Processor.Name -match 'E5-2637 v4') {$HT=1.2} # in 2022 I've changed it to 
 else {$HT=1}
 
 $peakDateCpu = $peakDateMem = Get-Date
-$lastProcesses = @{ID=4294967296}  # impossible ID for a comparison in updProcs to show difference for the keywords with no processes
+$Global:lastProcesses = @{ID=4294967296}  # impossible ID for a comparison in updProcs to show difference for the keywords with no processes
 function GD {Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff'}
 function newLog {
     $Global:logFile = "C:\PS\logs\$(Get-Date -Format 'yyyy-MM-dd HH-mm-ss').csv"
