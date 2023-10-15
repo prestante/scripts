@@ -1,0 +1,9 @@
+﻿#Write-Host "$($MSG.usage) for channel $($bxf.Schedule.Channel.Name.'#text') ($($bxf.Schedule.ScheduledEvent.Count) items):" -f 10 -b 0
+                $xml = [xml](Get-Content 'C:\server\log\NGCMCSwitcher\MCSMessage')                
+                if ($xml.MCSMessage.MCSRequest) {
+                    $id = $xml.MCSMessage.MCSRequest.MessageID -replace '^\s+|\s+$'
+                    $command = $xml.MCSMessage.MCSRequest.Command.CommandID -replace '^\s+|\s+$'
+                    $categories = $xml.GetElementsByTagName('Category').'#text' -replace '^\s+|\s+$'                    $target = $xml.GetElementsByTagName('TargetState').'#text' -replace '^\s+|\s+$'                    $instance = if (($xml.GetElementsByTagName('InstanceID').'#text').count -eq 1) {$xml.GetElementsByTagName('InstanceID').'#text' -replace '^\s+|\s+$'} else {''}
+                    $source = $xml.GetElementsByTagName('SourceID').'#text' -replace '^\s+|\s+$'                    Write-Text "$time ==> $command - $(if($target){"TargetState:$target "})$(if($categories){"Category:$($categories -join ',') "})$(if($source){"SourceID:$source "})$(if($showSystem){" ($id)"})" -b black -f green                }                elseif ($xml.MCSMessage.MCSResponse) {                    $id = $xml.MCSMessage.MCSResponse.MessageID -replace '^\s+|\s+$'
+                    $command = $xml.MCSMessage.MCSResponse.CommandID -replace '^\s+|\s+$'
+                    $status = $xml.MCSMessage.MCSResponse.RequestStatus -replace '^\s+|\s+$'                    Write-Text "$time <== $command : $status$(if($showSystem){" ($id)"})" -b black -f green                }
