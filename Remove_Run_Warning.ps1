@@ -1,36 +1,17 @@
-﻿Invoke-Command -ScriptBlock {
+﻿$address = 'wtlnas1.wtldev.net'
+$domain = $address -replace '.*\.(\w+\.\w+$)','$1'
+$place = $address -replace '(.*)\.\w+\.\w+$','$1'
+$registryPaths = @()
+$registryPaths += "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\EscDomains"
+$registryPaths += "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Domains"
 
-    $registryPath = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\EscRanges\Range1"
-    $registryPath3 = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Ranges\Range1"
-    $name = ":Range"
-    $name2 = "file"
-    $value = "192.168.12.3"
-    $value2 = 1
+$name2 = "file"
+$value2 = 1
 
-    IF(!(Test-Path $registryPath))
-      {
-        New-Item -Path $registryPath -Force | Out-Null
-        New-ItemProperty -Path $registryPath -Name $name -Value $value -PropertyType "String" -Force | Out-Null
-        New-ItemProperty -Path $registryPath -Name $name2 -Value $value2 -PropertyType DWORD -Force | Out-Null
-        }
-     ELSE {
-        New-ItemProperty -Path $registryPath -Name $name -Value $value -PropertyType "String" -Force | Out-Null
-        New-ItemProperty -Path $registryPath -Name $name2 -Value $value2 -PropertyType DWORD -Force | Out-Null
-        }
-
-
-    IF(!(Test-Path $registryPath3))
-      {
-        New-Item -Path $registryPath3 -Force | Out-Null
-        New-ItemProperty -Path $registryPath3 -Name $name -Value $value -PropertyType "String" -Force | Out-Null
-        New-ItemProperty -Path $registryPath3 -Name $name2 -Value $value2 -PropertyType DWORD -Force | Out-Null
-        }
-     ELSE {
-        New-ItemProperty -Path $registryPath3 -Name $name -Value $value -PropertyType "String" -Force | Out-Null
-        New-ItemProperty -Path $registryPath3 -Name $name2 -Value $value2 -PropertyType DWORD -Force | Out-Null
-        }
-
-        #Get-ItemProperty -Path $registryPath -Name $name
-
-    #Restart-Computer -Force
+foreach ($registryPath in $registryPaths) {
+  if (!(Test-Path $registryPath)) {New-Item -Path $registryPath -Force}
+  if (!(Test-Path "$registryPath\$domain")) {New-Item -Path "$registryPath\$domain" -Force}
+  if (!(Test-Path "$registryPath\$domain\$place")) {New-Item -Path "$registryPath\$domain\$place" -Force}
+  if ((Get-Item "$registryPath\$domain\$place").property -notcontains $name2) {New-ItemProperty -Path "$registryPath\$domain\$place" -Name $name2 -Value $value2 -PropertyType DWORD -Force}
 }
+ 
