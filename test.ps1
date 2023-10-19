@@ -1,4 +1,3 @@
-﻿$shell = New-Object -ComObject WScript.Shell
-$shortcut = $shell.CreateShortcut("$env:USERPROFILE\Desktop\//wtlnas5/Public/Releases/ADC.lnk")
-$shortcut.TargetPath = "\\wtlnas5\Public\Releases\ADC"
-$shortcut.Save()
+﻿New-PSDrive -Name "Z" -PSProvider FileSystem -Root "\\wtlnas1\Public\"
+Get-ChildItem "Z:\ADC\PS\resources"
+Remove-PSDrive "Z"

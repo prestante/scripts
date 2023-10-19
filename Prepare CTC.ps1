@@ -1,19 +1,24 @@
 #$CTC = @('WTL-ADC-CTC-01.WTLDEV.NET', 'WTL-ADC-CTC-02.WTLDEV.NET', 'WTL-ADC-CTC-03.WTLDEV.NET', 'WTL-ADC-CTC-04.WTLDEV.NET', 'WTL-ADC-CTC-05.WTLDEV.NET', 'WTL-ADC-CTC-06.WTLDEV.NET', 'WTL-ADC-CTC-07.WTLDEV.NET', 'WTL-ADC-CTC-08.WTLDEV.NET', 'WTL-ADC-CTC-09.WTLDEV.NET', 'WTL-ADC-CTC-10.WTLDEV.NET', 'WTL-ADC-CTC-11.WTLDEV.NET', 'WTL-ADC-CTC-12.WTLDEV.NET', 'WTL-ADC-CTC-13.WTLDEV.NET', 'WTL-ADC-CTC-14.WTLDEV.NET', 'WTL-ADC-CTC-15.WTLDEV.NET', 'WTL-ADC-CTC-16.WTLDEV.NET', 'WTL-ADC-CTC-17.WTLDEV.NET', 'WTL-ADC-CTC-18.WTLDEV.NET', 'WTL-ADC-CTC-19.WTLDEV.NET', 'WTL-ADC-CTC-20.WTLDEV.NET', 'WTL-ADC-CTC-21.WTLDEV.NET', 'WTL-ADC-CTC-22.WTLDEV.NET', 'WTL-ADC-CTC-23.WTLDEV.NET', 'WTL-ADC-CTC-24.WTLDEV.NET')
 $CTC = @('WTL-ADC-CTC-01.WTLDEV.NET', 'WTL-ADC-CTC-02.WTLDEV.NET')
 
-#$Creds = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText '*real password*' -Force))
+#$Creds = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText '**********' -Force))
+#$Key = ConvertFrom-SecureString $Creds.Password
 $Creds = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString '01000000d08c9ddf0115d1118c7a00c04fc297eb01000000be6cfee0e75a0949ba2fdb6de1be94dc0000000002000000000003660000c0000000100000006db45abcaa44ac13ffe44bf2c7d3e36d0000000004800000a000000010000000401071773556c48f0e7e41965cbf42ac18000000978e0f16f904e10e1f5ebf3f7f4a9ac9868797e2d8af87ab1400000006ee747bf93bbf0be2c227e545d619d46e04fd3b'))
 
 Invoke-Command -ComputerName $CTC -Credential $Creds {
     $report = "$(HOSTNAME.EXE):"
 
-    # Create \\wtlnas1 and \\wtlnas5 shortcuts on desktop
+    # Copy \\wtlnas1 and \\wtlnas5 shortcuts to desktop
+    $Creds = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString '01000000d08c9ddf0115d1118c7a00c04fc297eb010000009f66db1c1d1e7848b88b5f8ae4ba6c490000000002000000000003660000c000000010000000d6e57e6a4848208a6200222e5998baea0000000004800000a00000001000000077f50fb87b47fb35f49a831af787650e1800000083d2be68850f21b9607ac78a51c6b12bf6e4a6826bf8592e14000000800c89a6890c68b73e146b022522ffe2f6068c72'))
+    New-PSDrive -Name "Z" -PSProvider FileSystem -Root "\\wtlnas1\Public\ADC\PS\resources" -Credential $Creds
     @(
-        @{path = "$env:USERPROFILE\Desktop\Releases ADC.lnk"; target = "\\wtlnas5\Public\Releases\ADC"}
-        @{path = "$env:USERPROFILE\Desktop\WTLNAS1 ADC.lnk"; target = "\\wtlnas1\Public\ADC"}
+        [PSCustomObject]@{name = "Releases ADC.lnk"; target = "$env:USERPROFILE\Desktop\"}
+        [PSCustomObject]@{name = "WTLNAS1 ADC.lnk"; target = "$env:USERPROFILE\Desktop\"}
     ) | ForEach-Object {
-        if (!(Get-Item $_.path -ea SilentlyContinue)) {$shell = New-Object -ComObject WScript.Shell; $shortcut = $shell.CreateShortcut($_.path); $shortcut.TargetPath = $_.target; $shortcut.Save(); $report += "`n`tDesktop Shortcut '$($_.path -replace('.*\\([\w\s]+)\.lnk$','$1'))' is added leading to '$($_.target)'"}
+        Copy-Item "Z:\$($_.name)" -Destination $_.target
+        $report += "`n`tItem '$($_.name)' has been copied to '$($_.target)'"
     }
+    Remove-PSDrive "Z"
 
     # Remove Run Warnings for \\wtlnas1 and \\wtlnas5
     @('wtlnas1.wtldev.net','wtlnas5.wtldev.net') | ForEach-Object {
@@ -33,7 +38,7 @@ Invoke-Command -ComputerName $CTC -Credential $Creds {
         }
     }
     Write-Host "$report" -f (Get-Random (9..15))
-    Restart-Computer -Force
+    #Restart-Computer -Force
 }
 
 Remove-Variable * -ea SilentlyContinue
