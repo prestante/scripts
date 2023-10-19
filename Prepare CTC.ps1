@@ -10,13 +10,16 @@ Invoke-Command -ComputerName $CTC -Credential $Creds {
 
     # Copy \\wtlnas1 and \\wtlnas5 shortcuts to desktop
     $Creds = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString '01000000d08c9ddf0115d1118c7a00c04fc297eb010000009f66db1c1d1e7848b88b5f8ae4ba6c490000000002000000000003660000c000000010000000d6e57e6a4848208a6200222e5998baea0000000004800000a00000001000000077f50fb87b47fb35f49a831af787650e1800000083d2be68850f21b9607ac78a51c6b12bf6e4a6826bf8592e14000000800c89a6890c68b73e146b022522ffe2f6068c72'))
-    New-PSDrive -Name "Z" -PSProvider FileSystem -Root "\\wtlnas1\Public\ADC\PS\resources" -Credential $Creds
+    New-PSDrive -Name "Z" -PSProvider FileSystem -Root "\\wtlnas1\Public\ADC\PS\resources" -Credential $Creds | Out-Null
+    $report += "`n`tPSDrive 'Z' has been mounted"
     @(
         [PSCustomObject]@{name = "Releases ADC.lnk"; target = "$env:USERPROFILE\Desktop\"}
         [PSCustomObject]@{name = "WTLNAS1 ADC.lnk"; target = "$env:USERPROFILE\Desktop\"}
     ) | ForEach-Object {
-        Copy-Item "Z:\$($_.name)" -Destination $_.target
-        $report += "`n`tItem '$($_.name)' has been copied to '$($_.target)'"
+        if (!(Get-Item "$($_.target)$($_.name)" -ea SilentlyContinue)) {
+            Copy-Item "Z:\$($_.name)" -Destination $_.target
+            $report += "`n`t`tItem '$($_.name)' has been copied to '$($_.target)'"
+        }
     }
     Remove-PSDrive "Z"
 
@@ -37,7 +40,7 @@ Invoke-Command -ComputerName $CTC -Credential $Creds {
             if ((Get-Item "$registryPath\$domain\$place").property -notcontains $name) {$item = "$registryPath\$domain\$place"; New-ItemProperty -Path $item -Name $name -Value $value -PropertyType DWORD -Force | Out-Null; $report += "`n`tNew Registry Property:`t$item\$name=$value"}
         }
     }
-    Write-Host "$report" -f (Get-Random (9..15))
+    Write-Host "$report" -f (Get-Random (1,2,3,5,6,9,10,11,13,14))
     #Restart-Computer -Force
 }
 
