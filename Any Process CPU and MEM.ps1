@@ -51,7 +51,7 @@ function newProcs {
         $Global:ProcKeyWords = $Global:EnteredWords -split ','
         updProcs
         if ($Global:Processes) {
-            $Global:Processes | select -Property Name,Description,Id -Unique | ft
+            $Global:Processes | Select-Object -Property Name,Description,Id -Unique | Format-Table
             $agree = Read-Host "Are you OK with these processes? Default is 'yes' (y/n)"
         }
         else {
@@ -70,15 +70,15 @@ Function zero {
 function updProcs {
     try {
         $Global:Processes = @()
-        foreach ($ProcKeyWord in $Global:ProcKeyWords) {$Global:Processes += @(Get-Process | where {($_.Name -match $ProcKeyWord) -or ($_.Id -eq $ProcKeyWord) -or ($_.Description -match $ProcKeyWord)} | sort -Property StartTime -ea Stop)}
+        foreach ($ProcKeyWord in $Global:ProcKeyWords) {$Global:Processes += @(Get-Process | Where-Object {($_.Name -match $ProcKeyWord) -or ($_.Id -eq $ProcKeyWord) -or ($_.Description -match $ProcKeyWord)} | Sort-Object -Property StartTime -ea Stop)}
     } catch {
         $Global:Processes = @()
-        foreach ($ProcKeyWord in $Global:ProcKeyWords) {$Global:Processes += @(Get-Process | where {($_.Name -match $ProcKeyWord) -or ($_.Id -eq $ProcKeyWord) -or ($_.Description -match $ProcKeyWord)})}
+        foreach ($ProcKeyWord in $Global:ProcKeyWords) {$Global:Processes += @(Get-Process | Where-Object {($_.Name -match $ProcKeyWord) -or ($_.Id -eq $ProcKeyWord) -or ($_.Description -match $ProcKeyWord)})}
     }
     #if (Compare-Object $Global:lastProcesses $Global:Processes) { #processes list has been changed  # maybe just check equality of two sorted Id lists????
-    if ((($Global:Processes.Id | Sort) -join '') -ne (($Global:lastProcesses.Id | Sort) -join '')) {  #processes list has been changed
+    if ((($Global:Processes.Id | Sort-Object) -join '') -ne (($Global:lastProcesses.Id | Sort-Object) -join '')) {  #processes list has been changed
         $Global:table = @()
-        if ($Global:Processes.Name) {$Global:table += $Global:Processes | %{
+        if ($Global:Processes.Name) {$Global:table += $Global:Processes | ForEach-Object{
             $obj = [pscustomobject]@{
                 Name = $_.Name  -replace '^Harris.Automation.ADC.Services.' -replace 'Host' -replace 'Service' -replace 'Validation'
                 Id = $_.Id
@@ -136,8 +136,8 @@ function updProcs {
 Function updCounters {
     $countersList = New-Object System.Collections.Generic.List[System.Object]
     $counterResults = New-Object System.Collections.Generic.List[System.Object]
-    foreach ($uniq in ($Global:Processes.Name | select -Unique)) {
-        0..((Get-Process -Name $uniq).Count - 1) | %{
+    foreach ($uniq in ($Global:Processes.Name | Select-Object -Unique)) {
+        0..((Get-Process -Name $uniq).Count - 1) | ForEach-Object {
             $countersList.Add("\$locProcName($uniq#$_)\$locIdProcName"); 
             $countersList.Add("\$locProcName($uniq#$_)\$locWrkSetName")
             $countersList.Add("\$locProcName($uniq#$_)\$locProcTimeName"); 
@@ -147,10 +147,10 @@ Function updCounters {
     $countersList.Add($locProcIdlName)
 
     #try {
-        (Get-Counter $countersList -ea SilentlyContinue).CounterSamples | %{$counterResults.Add([pscustomobject]@{path = $_.path; cookedvalue = [decimal]$_.cookedvalue})}
+        (Get-Counter $countersList -ea SilentlyContinue).CounterSamples | ForEach-Object {$counterResults.Add([pscustomobject]@{path = $_.path; cookedvalue = [decimal]$_.cookedvalue})}
     #} catch {Write-Host "$($Error[0].Exception.Message)" -f 13 -b 0}
     $sumMem = $sumCpu = [decimal]0
-    $counterResults | ?{$_.path -match "$locIdProcName"} | %{
+    $counterResults | Where-Object {$_.path -match "$locIdProcName"} | ForEach-Object {
         $id = [int]($_.cookedvalue)
         $mem = $counterResults[($counterResults.IndexOf($_)+1)].cookedvalue/1mb
         $cpu = $counterResults[($counterResults.IndexOf($_)+2)].cookedvalue/$LogicalCPUs/$HT
@@ -189,8 +189,8 @@ do {
     $table.Where({$_.Name -eq 'Low'}).foreach({$_.Memory = [math]::Round($lowMem); $_.CPU = [math]::Round($lowCpu)})
     $qt++
 
-    cls
-    $table | ft -AutoSize
+    Clear-Host
+    $table | Format-Table -AutoSize
     
     $diff = ((get-date) - $startTime)
     Write-Host ("Elapsed {0:00}:{1:mm}:{1:ss}  (F1) - help" -f [math]::Floor($diff.TotalHours),$diff) -f Gray
@@ -207,7 +207,7 @@ do {
     if ($loggingSum) {
         Write-Host $logFileSum -f Magenta
         $string = "$(GD)"
-        $table | ?{$_.Name -eq 'Sum'} | %{$string += ",$($_.Memory),$($_.CPU)"}
+        $table | Where-Object {$_.Name -eq 'Sum'} | ForEach-Object {$string += ",$($_.Memory),$($_.CPU)"}
         $string | Out-File $logFileSum -Append ascii
     }
     if ($infoCounter) {
