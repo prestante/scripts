@@ -6,10 +6,15 @@
 #Good WMIs:
 # Get Logical Processors Number (CTC - 35 ms, agalkovs - 65 ms)
 # (Get-WmiObject -Query "SELECT Name FROM Win32_PerfRawData_Counters_ProcessorInformation").Count - 2
+
 # Get Formatted PercentProcessorTime (or any process formatted property)
 # (Get-WmiObject -Query "SELECT * FROM Win32_PerfFormattedData_PerfProc_Process WHERE IDProcess like '1768'").PercentProcessorTime
+
 # Get Timestamp_Sys100NS
 # (Get-WmiObject -Query "SELECT Timestamp_Sys100NS FROM Win32_PerfRawData_PerfOS_System").Timestamp_Sys100NS
+
+# Get Available Memory (it can be substracted from total physical memory to get IN USE memory)
+# (Get-WmiObject Win32_PerfRawData_PerfOS_Memory).AvailableBytes
 
 #$table = Get-WmiObject -List | Where-Object {$_.Name -match 'processor'}
 #$table | ft -AutoSize

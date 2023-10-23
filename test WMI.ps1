@@ -1,6 +1,6 @@
-#$table = Get-WmiObject -List | Where-Object {$_.Name -match 'Raw.*Process'}
+#$table = Get-WmiObject -List | Where-Object {$_.Name -match 'Memory'} | ft -AutoSize
 #$table | ft -AutoSize
-#Get-WmiObject Win32_Process | Where-Object {$_.Name -match 'TaskMgr'} #| select -Property Name, PercentProcessorTime, ElapsedTime
+#Get-WmiObject Win32_AssociatedProcessorMemory | Where-Object {$_.Name -match 'TaskMgr'} #| select -Property Name, PercentProcessorTime, ElapsedTime
 #Get-WmiObject Win32_PerfRawData_PerfOS_Processor | select -First 1 | select -Property  Name, Description, PercentProcessorTime, PercentProcessorUtility
 
 function Get-RawResults {
