@@ -1,4 +1,9 @@
-﻿#Good WMIs:
+﻿#$username = 'wtldev.net\vadc'
+#$password = ConvertTo-SecureString $env:vpw -AsPlainText -Force
+#$credential = New-Object System.Management.Automation.PSCredential($username, $password)
+#$hostname = 'wtl-adc-ctc-01.wtldev.net'
+
+#Good WMIs:
 # Get Logical Processors Number (CTC - 35 ms, agalkovs - 65 ms)
 # (Get-WmiObject -Query "SELECT Name FROM Win32_PerfRawData_Counters_ProcessorInformation").Count - 2
 # Get Formatted PercentProcessorTime (or any process formatted property)

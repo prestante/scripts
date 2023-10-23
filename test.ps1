@@ -1,31 +1,19 @@
 ﻿$username = 'wtldev.net\vadc'
-$password = ConvertTo-SecureString $env:vpw -AsPlainText
+$password = ConvertTo-SecureString $env:vpw -AsPlainText -Force
 $credential = New-Object System.Management.Automation.PSCredential($username, $password)
 $hostname = 'wtl-adc-ctc-01.wtldev.net'
 
-#local agalkovs Powershell PID = 1768
-#$queryFormatted = "SELECT PercentProcessorTime FROM Win32_PerfFormattedData_PerfProc_Process WHERE Name='ChronosExe'"
-#$queryRaw = "SELECT PercentProcessorTime FROM Win32_PerfRawData_PerfProc_Process WHERE Name='ChronosExe'"
-#$queryFormatted = "SELECT PercentProcessorTime FROM Win32_PerfFormattedData_PerfProc_Process WHERE IDProcess='1768'"
-#$queryRaw = "SELECT PercentProcessorTime FROM Win32_PerfRawData_PerfProc_Process WHERE IDProcess='1768'"
-$queryFormatted = "SELECT PercentProcessorTime FROM Win32_PerfFormattedData_Counters_ProcessV2 WHERE Name='ChronosExe'"
-$queryRaw = "SELECT PercentProcessorTime FROM Win32_PerfRawData_Counters_ProcessV2 WHERE Name='ChronosExe'"
+$properties = 'Name, Timestamp_Sys100NS, PercentProcessorTime'
+$all = Get-WmiObject -Query "SELECT $properties FROM Win32_PerfRawData_PerfProc_Process"
+$all.count
+$all | Where-Object {$_.Name -match 'Explorer'} | Select-Object -Property $properties.Split(', ')
 
-for ($i = 0; $i -lt 20; $i++) {
-    $time0 = Get-Date
-    $resultFormatted = "{0:n3}" -f (Get-WmiObject -Query $queryFormatted -ComputerName $hostname -Credential $credential).PercentProcessorTime
-    $resultRaw = "{0:n3}" -f (Get-WmiObject -Query $queryRaw -ComputerName $hostname -Credential $credential).PercentProcessorTime
-    #$resultFormatted = "{0:n3}" -f (Get-WmiObject -Query $queryFormatted).PercentProcessorTime
-    #$resultRaw = "{0:n3}" -f (Get-WmiObject -Query $queryRaw).PercentProcessorTime
-    #$result = "{0:n3}" -f (Get-Counter "\Process(ChronosExe)\% processor time").CounterSamples.CookedValue
-    $timeDiff = "{0:ss}.{0:fff}" -f ((Get-Date) - $time0)
-    Write-Host "TimeDiff: $timeDiff     Formatted: $resultFormatted     Raw: $resultRaw"
-}
-
-#$table = Get-WmiObject -List | Where-Object {$_.Name -match 'Process'}
-#$table | Format-Table -AutoSize
-
-#Get-WmiObject 'Win32_PerfRawData_PerfProc_Process' | Select-Object -First 5
-
+do {
+    $time1 = Get-Date
+    $process = Get-Process explorer
+    #$allRawProcesses = Get-WmiObject -Query "SELECT Name, Timestamp_Sys100NS, PercentProcessorTime FROM Win32_PerfRawData_PerfProc_Process" -ComputerName $hostname -Credential $credential
+    #$allRawProcesses | Where-Object {$_.Name -match 'Idle'}
+    Write-Host "$([int](((Get-Date) - $time1).TotalMilliseconds)), " -NoNewline
+} while (1)
 
 
