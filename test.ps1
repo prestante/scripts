@@ -1,11 +1,11 @@
-﻿$username = 'wtldev.net\vadc'
-$password = ConvertTo-SecureString $env:vpw -AsPlainText -Force
-$credential = New-Object System.Management.Automation.PSCredential($username, $password)
-$hostname = 'wtl-adc-ctc-01.wtldev.net'
+﻿#$username = 'wtldev.net\vadc'
+#$password = ConvertTo-SecureString $env:vpw -AsPlainText -Force
+#$credential = New-Object System.Management.Automation.PSCredential($username, $password)
+#$hostname = 'wtl-adc-ctc-01.wtldev.net'
 
 $properties = 'Name, IDProcess, Timestamp_Sys100NS, PercentProcessorTime, WorkingSet'
 $all = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process"
-$all | Where-Object {$_.Name -match '_Total'} #| Select-Object -Property $properties.Split(', ') | ft
+$all | Where-Object {$_.Name -match 'Chrome'} | Select-Object -Property $properties.Split(', ') | ft
 return
 
 do {

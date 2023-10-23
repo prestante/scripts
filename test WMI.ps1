@@ -35,7 +35,7 @@ function Get-RawWMI {
     else {Write-Error "You should give at least one of [string]procName or [int]procID"}
 }
 
-$procName = 'Idle'
+$procName = 'Chrome'
 $procID = 3804
 $cores = (Get-WmiObject Win32_PerfRawData_PerfOS_Processor).Count - 1
 

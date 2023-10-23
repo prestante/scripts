@@ -1,16 +1,8 @@
-﻿Write-Host "Reading CPU properties..." -fo Yellow -ba Black
-$LogicalCPUs = (Get-WmiObject Win32_PerfRawData_PerfOS_Processor).Count - 1
-$totalMemory = (Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property capacity -Sum).sum /1mb
+﻿Remove-Variable * -ea SilentlyContinue
+Write-Host "Reading CPU properties..." -fo Yellow -ba Black
+$Global:LogicalCPUs = (Get-WmiObject Win32_PerfRawData_PerfOS_Processor).Count - 1
+$Global:totalMemory = (Get-WmiObject Win32_PhysicalMemory | Measure-Object -Property capacity -Sum).sum /1mb
 Update-TypeData -TypeName procListType -DefaultDisplayPropertySet 'Name','Id','Memory','CPU' -ea SilentlyContinue #this is to display only props needed
-
-
-
-
-
-
-if ($Processor.Name -match 'E5-2637 v4') {$HT=1.2} # in 2022 I've changed it to be more precise. Checked, set to 1.2.
-else {$HT=1}
-
 $peakDateCpu = $peakDateMem = Get-Date
 $Global:lastProcesses = @{ID=4294967296}  # impossible ID for a comparison in updProcs to show difference for the keywords with no processes
 function GD {Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff'}
@@ -29,14 +21,16 @@ function newLogSum {
 }
 function newProcs {
     do {
-        Write-Host "Now you have to enter a Key Word corresponding to the Name or Description or PID of a processes to watch." -f Yellow -b Black
-        Write-Host "Be careful with the Key Word. If some new process suitable for your Key Word will appear in the system later, it will be added to the list automatically." -f Yellow -b Black
-        Write-Host "You can also type several keywords separated by comma. They all will be used at once to filter the processes list." -f Yellow -b Black
-        Write-Host "Later you will be able to enter new Key Word by pressing <N>." -f Cyan -b Black
-        $Global:EnteredWords = Read-Host "Enter Key Word(s)"
+        #Write-Host "Now you have to enter a Key Word corresponding to the Name or Description or PID of a processes to watch." -f Yellow -b Black
+        #Write-Host "Be careful with the Key Word. If some new process suitable for your Key Word will appear in the system later, it will be added to the list automatically." -f Yellow -b Black
+        #Write-Host "You can also type several keywords separated by comma. They all will be used at once to filter the processes list." -f Yellow -b Black
+        #Write-Host "Later you will be able to enter new Key Word by pressing <N>." -f Cyan -b Black
+        #$Global:EnteredWords = Read-Host "Enter Key Word(s)"
         #$Global:EnteredWords = 'ADC.Services'
+        $Global:EnteredWords = 'Powershell'
         $Global:ProcKeyWords = $Global:EnteredWords -split ','
         updProcs
+        return
         if ($Global:Processes) {
             $Global:Processes | Select-Object -Property Name,Description,Id -Unique | Format-Table
             $agree = Read-Host "Are you OK with these processes? Default is 'yes' (y/n)"
@@ -64,14 +58,19 @@ function updProcs {
     }
     #if (Compare-Object $Global:lastProcesses $Global:Processes) { #processes list has been changed  # maybe just check equality of two sorted Id lists????
     if ((($Global:Processes.Id | Sort-Object) -join '') -ne (($Global:lastProcesses.Id | Sort-Object) -join '')) {  #processes list has been changed
+        $allRawProcesses = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process"  # Getting all processes raw information
         $Global:table = @()
         if ($Global:Processes.Name) {$Global:table += $Global:Processes | ForEach-Object{
+            $tempID = $_.Id
             $obj = [pscustomobject]@{
                 Name = $_.Name  -replace '^Harris.Automation.ADC.Services.' -replace 'Host' -replace 'Service' -replace 'Validation'
-                Id = $_.Id
+                Id = $tempID
                 Memory = 0
                 CPU = 0
                 Start = $_.StartTime
+                LastRawMEM = $allRawProcesses.Where({$_.IDProcess -eq $tempID}).WorkingSet
+                LastRawCPU = $allRawProcesses.Where({$_.IDProcess -eq $tempID}).PercentProcessorTime
+                LastTimestamp = $allRawProcesses.Where({$_.IDProcess -eq $tempID}).Timestamp_Sys100NS
             }
             $obj.PSTypeNames.Add("procListType")
             $obj
@@ -113,44 +112,43 @@ function updProcs {
             Name = 'TOTAL'
             Memory = 0
             CPU = 0
+            LastIdleCPU = $allRawProcesses.Where({$_.Name -eq 'Idle'}).PercentProcessorTime
+            LastIdleTimestamp = $allRawProcesses.Where({$_.Name -eq 'Idle'}).Timestamp_Sys100NS
         }
-        Get-Counter -ListSet $locProcName | Out-Null #just to refresh system counters data
         if ($Global:logging) {newLog}
         if ($Global:loggingSum) {newLogSum}
     }
     $Global:lastProcesses = $Global:Processes
 }
 Function updCounters {
-    $countersList = New-Object System.Collections.Generic.List[System.Object]
-    $counterResults = New-Object System.Collections.Generic.List[System.Object]
-    foreach ($uniq in ($Global:Processes.Name | Select-Object -Unique)) {
-        0..((Get-Process -Name $uniq).Count - 1) | ForEach-Object {
-            $countersList.Add("\$locProcName($uniq#$_)\$locIdProcName"); 
-            $countersList.Add("\$locProcName($uniq#$_)\$locWrkSetName")
-            $countersList.Add("\$locProcName($uniq#$_)\$locProcTimeName"); 
-        }
-    }
-    $countersList.Add($locMemAvlName)
-    $countersList.Add($locProcIdlName)
+    $allRawProcesses = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process"  # Getting all processes raw information
+    
+    foreach ($id in ($Global:Processes.Id)) {
+        $allRawProcesses | Where-Object {$_.IDProcess -match $id} | ForEach-Object {
+            $currentProc = $allRawProcesses.Where({$_.IDProcess -eq $id})
+            $mem = $currentProc.WorkingSet/1mb
+            $cpu = [math]::Round((($currentProc.PercentProcessorTime - $Global:table.Where({$_.Id -eq $id}).LastRawCPU) / ($currentProc.Timestamp_Sys100NS - $Global:table.Where({$_.Id -eq $id}).LastTimestamp) / $Global:LogicalCPUs * 100), 2)
 
-    #try {
-        (Get-Counter $countersList -ea SilentlyContinue).CounterSamples | ForEach-Object {$counterResults.Add([pscustomobject]@{path = $_.path; cookedvalue = [decimal]$_.cookedvalue})}
-    #} catch {Write-Host "$($Error[0].Exception.Message)" -f 13 -b 0}
-    $sumMem = $sumCpu = [decimal]0
-    $counterResults | Where-Object {$_.path -match "$locIdProcName"} | ForEach-Object {
-        $id = [int]($_.cookedvalue)
-        $mem = $counterResults[($counterResults.IndexOf($_)+1)].cookedvalue/1mb
-        $cpu = $counterResults[($counterResults.IndexOf($_)+2)].cookedvalue/$LogicalCPUs/$HT
-        $Global:table.Where({$_.Id -eq $id}).foreach({$_.Memory = [math]::Round($mem); $_.CPU = [math]::Round($cpu)})
-        if ($Global:table.id -contains $id) {$sumMem += $mem; $sumCpu += $cpu}
+            $Global:table.Where({$_.Id -eq $id}).foreach({  # updating Global table with new raw and calculated results
+                $_.Memory = [int][math]::Round($mem)
+                $_.CPU = [int][math]::Round($cpu)
+                $_.LastRawMEM = $currentProc.WorkingSet
+                $_.LastRawCPU = $currentProc.PercentProcessorTime
+                $_.LastTimestamp = $currentProc.Timestamp_Sys100NS
+            })
+            $sumMem += $mem; $sumCpu += $cpu
+        } #| Select-Object -Property Name, IDProcess, Timestamp_Sys100NS, WorkingSet
     }
+    $idleCPU = [math]::Round((($allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime - $Global:table.Where({$_.Name -eq 'TOTAL'}).LastIdleCPU) / ($allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS - $Global:table.Where({$_.Name -eq 'TOTAL'}).LastIdleTimestamp) / $Global:LogicalCPUs * 100), 2)
     $Global:table.Where({$_.Name -eq 'Sum'}).foreach({$_.Memory = [math]::Round($sumMem); $_.CPU = [math]::Round($sumCpu)})
-    $Global:table.Where({$_.Name -eq 'TOTAL'}).foreach({$_.Memory = [math]::Round($totalMemory - $counterResults[-2].cookedvalue/1mb); $_.CPU = 100 - [math]::Floor($counterResults[-1].cookedvalue/$LogicalCPUs)})
-    if ($sumCpu -gt 100) {$Global:remResults = $counterResults; $Global:remTable = $Global:table} #debug
+    $Global:table.Where({$_.Name -eq 'TOTAL'}).foreach({$_.Memory = [math]::Round($Global:totalMemory - (Get-WmiObject Win32_PerfRawData_PerfOS_Memory).AvailableBytes/1mb); $_.CPU = 100 - [math]::Floor($idleCPU); $_.LastIdleCPU = $allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime; $_.LastIdleTimestamp = $allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS})
 }
 
 newProcs
 zero
+updCounters
+$Global:table | select * | ft
+return
 
 do {   
     $timeProcs = (Get-Date)
