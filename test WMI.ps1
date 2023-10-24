@@ -3,6 +3,23 @@
 #Get-WmiObject Win32_AssociatedProcessorMemory | Where-Object {$_.Name -match 'TaskMgr'} #| select -Property Name, PercentProcessorTime, ElapsedTime
 #Get-WmiObject Win32_PerfRawData_PerfOS_Processor | select -First 1 | select -Property  Name, Description, PercentProcessorTime, PercentProcessorUtility
 
+#$username = 'wtldev.net\vadc'
+#$password = ConvertTo-SecureString $env:vpw -AsPlainText -Force
+#$credential = New-Object System.Management.Automation.PSCredential($username, $password)
+#$hostname = 'wtl-adc-ctc-01.wtldev.net'
+
+#$properties = 'Name, IDProcess, Timestamp_Sys100NS, PercentProcessorTime, WorkingSet'
+$all = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process"
+$all | Where-Object {$_.Name -match 'taskmgr'} #| Select-Object -Property $properties.Split(', ') | ft
+return
+
+
+
+
+
+
+
+
 function Get-RawResults {
     param (
         [Parameter(Mandatory=0)][string]$procName,

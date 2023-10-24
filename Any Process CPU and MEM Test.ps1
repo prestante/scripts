@@ -28,12 +28,12 @@ function newProcs {
         #Write-Host "Be careful with the Key Word. If some new process suitable for your Key Word will appear in the system later, it will be added to the list automatically." -f Yellow -b Black
         #Write-Host "You can also type several keywords separated by comma. They all will be used at once to filter the processes list." -f Yellow -b Black
         #Write-Host "Later you will be able to enter new Key Word by pressing <N>." -f Cyan -b Black
-        #$Global:EnteredWords = Read-Host "Enter Key Word(s)"
+        $Global:EnteredWords = Read-Host "Enter Key Word(s)"
         #$Global:EnteredWords = 'ADC.Services'
-        $Global:EnteredWords = 'chrome'
+        #$Global:EnteredWords = 'edge'
         $Global:ProcKeyWords = $Global:EnteredWords -split ','
         updProcs
-        return
+
         if ($Global:Processes) {
             $Global:Processes | Select-Object -Property Name,IdProcess -Unique | Format-Table
             $agree = Read-Host "Are you OK with these processes? Default is 'yes' (y/n)"
@@ -126,23 +126,25 @@ Function updCounters {
     $Global:timeAllRawProcess = "$([int]((Get-Date) - $Global:timeAllRawProcess0).TotalMilliseconds) `tms to get allRawProcesses in updCounters"
     
     $Global:timeToUpdateTable0 = (Get-Date)
+    $RawProcesses = @()
+    foreach ($id in ($Global:Processes.IdProcess)) {$allRawProcesses | Where-Object {$_.IDProcess -eq $id} | ForEach-Object {$RawProcesses += $_}}
     $sumMem = $sumCpu = [decimal]0
-    foreach ($id in ($Global:Processes.IdProcess)) {
-        $allRawProcesses | Where-Object {$_.IDProcess -eq $id} | ForEach-Object {
-            $currentProc = $allRawProcesses.Where({$_.IDProcess -eq $id})  # just for shortening the cpu calculation line
-            $mem = $currentProc.WorkingSet/1mb
-            $cpu = [math]::Round((($currentProc.PercentProcessorTime - $Global:table.Where({$_.Id -eq $id}).LastRawCPU) / ($currentProc.Timestamp_Sys100NS - $Global:table.Where({$_.Id -eq $id}).LastTimestamp) / $Global:LogicalCPUs * 100), 2)
-
-            $Global:table.Where({$_.Id -eq $id}).foreach({  # updating Global table with new raw and calculated results
-                $_.Memory = [int][math]::Round($mem)
-                $_.CPU = [int][math]::Round($cpu)
-                $_.LastRawMEM = $currentProc.WorkingSet
-                $_.LastRawCPU = $currentProc.PercentProcessorTime
-                $_.LastTimestamp = $currentProc.Timestamp_Sys100NS
-            })
-            $sumMem += $mem; $sumCpu += $cpu
-        } #| Select-Object -Property Name, IDProcess, Timestamp_Sys100NS, WorkingSet
-    }
+    $RawProcesses | ForEach-Object {
+        $currentProc = $_  # for avoiding double $_ $_ in one line
+        $id = $currentProc.IDProcess  # Id we are currently working on
+        $mem = $currentProc.WorkingSet/1mb
+        $cpu = [math]::Round((($currentProc.PercentProcessorTime - $Global:table.Where({$_.Id -eq $id}).LastRawCPU) / ($currentProc.Timestamp_Sys100NS - $Global:table.Where({$_.Id -eq $id}).LastTimestamp) / $Global:LogicalCPUs * 100), 2)
+        
+        $Global:table.Where({$_.Id -eq $id}).foreach({  # updating Global table with new raw and calculated results
+            $_.Memory = [int][math]::Round($mem)
+            $_.CPU = [int][math]::Round($cpu)
+            $_.LastRawMEM = $currentProc.WorkingSet
+            $_.LastRawCPU = $currentProc.PercentProcessorTime
+            $_.LastTimestamp = $currentProc.Timestamp_Sys100NS
+        })
+        $sumMem += $mem; $sumCpu += $cpu
+    } #| Select-Object -Property Name, IDProcess, Timestamp_Sys100NS, WorkingSet
+    
     $idleCPU = [math]::Round((($allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime - $Global:table.Where({$_.Name -eq 'TOTAL'}).LastIdleCPU) / ($allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS - $Global:table.Where({$_.Name -eq 'TOTAL'}).LastIdleTimestamp) / $Global:LogicalCPUs * 100), 2)
     $Global:table.Where({$_.Name -eq 'Sum'}).foreach({$_.Memory = [int][math]::Round($sumMem); $_.CPU = [int][math]::Round($sumCpu)})
     $Global:table.Where({$_.Name -eq 'TOTAL'}).foreach({$_.Memory = [int][math]::Round($Global:totalMemory - (Get-WmiObject Win32_PerfRawData_PerfOS_Memory).AvailableBytes/1mb); $_.CPU = [int](100 - [math]::Floor($idleCPU)); $_.LastIdleCPU = $allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime; $_.LastIdleTimestamp = $allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS})
@@ -152,9 +154,9 @@ Function updCounters {
 newProcs
 zero
 $debug = 1
-updCounters
-$Global:table | select * | ft
-return
+#updCounters
+#$Global:table | select * | ft
+#return
 
 do {   
     $timeProcs0 = (Get-Date)
