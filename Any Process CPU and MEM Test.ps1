@@ -1,9 +1,12 @@
 ﻿Remove-Variable * -ea SilentlyContinue
-Write-Host "Reading CPU properties..." -fo Yellow -ba Black
+Write-Host "Reading CPU properties..." -fo Yellow -ba Black -NoNewline
 $Global:LogicalCPUs = (Get-WmiObject Win32_PerfRawData_PerfOS_Processor).Count - 1
+Write-Host "Done" -fo Yellow -ba Black
+Write-Host "Reading Memory properties..." -fo Yellow -ba Black -NoNewline
 $Global:totalMemory = (Get-WmiObject Win32_PhysicalMemory | Measure-Object -Property capacity -Sum).sum /1mb
-Update-TypeData -TypeName procListType -DefaultDisplayPropertySet 'Name','Id','Memory','CPU' -ea SilentlyContinue #this is to display only props needed
-$peakDateCpu = $peakDateMem = Get-Date
+Write-Host "Done" -fo Yellow -ba Black
+Update-TypeData -TypeName procListType -DefaultDisplayPropertySet 'Name','Id','Memory','CPU' -ea SilentlyContinue  # this is to display by default only props needed
+$peakDateCpu = $peakDateMem = Get-Date  # starting date to compare newer dates with it
 $Global:lastProcesses = @{ID=4294967296}  # impossible ID for a comparison in updProcs to show difference for the keywords with no processes
 function GD {Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff'}
 function newLog {
@@ -27,7 +30,7 @@ function newProcs {
         #Write-Host "Later you will be able to enter new Key Word by pressing <N>." -f Cyan -b Black
         #$Global:EnteredWords = Read-Host "Enter Key Word(s)"
         #$Global:EnteredWords = 'ADC.Services'
-        $Global:EnteredWords = 'edge'
+        $Global:EnteredWords = 'chrome'
         $Global:ProcKeyWords = $Global:EnteredWords -split ','
         updProcs
         return
@@ -63,7 +66,7 @@ function updProcs {
                 Id = $tempID
                 Memory = 0
                 CPU = 0
-                Start = (Get-Process -Id $_.IDProcess).StartTime  # time to execute should be measured 
+                Start = (Get-Process -Id $_.IDProcess).StartTime  # looks like it doesn't affect the performance
                 LastRawMEM = $allRawProcesses.Where({$_.IDProcess -eq $tempID}).WorkingSet
                 LastRawCPU = $allRawProcesses.Where({$_.IDProcess -eq $tempID}).PercentProcessorTime
                 LastTimestamp = $allRawProcesses.Where({$_.IDProcess -eq $tempID}).Timestamp_Sys100NS
@@ -149,9 +152,9 @@ Function updCounters {
 newProcs
 zero
 $debug = 1
-#updCounters
-#$Global:table
-#return
+updCounters
+$Global:table | select * | ft
+return
 
 do {   
     $timeProcs0 = (Get-Date)
