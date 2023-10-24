@@ -27,7 +27,7 @@ function newProcs {
         #Write-Host "Later you will be able to enter new Key Word by pressing <N>." -f Cyan -b Black
         #$Global:EnteredWords = Read-Host "Enter Key Word(s)"
         #$Global:EnteredWords = 'ADC.Services'
-        $Global:EnteredWords = 'Powershell'
+        $Global:EnteredWords = 'Edge'
         $Global:ProcKeyWords = $Global:EnteredWords -split ','
         updProcs
         return
@@ -49,15 +49,19 @@ Function zero {
     $Global:qt = [uint64]0
 }
 function updProcs {
+    $Global:timeGetProcess0 = (Get-Date)
     try {
         $Global:Processes = @()
         foreach ($ProcKeyWord in $Global:ProcKeyWords) {$Global:Processes += @(Get-Process | Where-Object {($_.Name -match $ProcKeyWord) -or ($_.Id -eq $ProcKeyWord) -or ($_.Description -match $ProcKeyWord)} | Sort-Object -Property StartTime -ea Stop)}
     } catch {
         $Global:Processes = @()
         foreach ($ProcKeyWord in $Global:ProcKeyWords) {$Global:Processes += @(Get-Process | Where-Object {($_.Name -match $ProcKeyWord) -or ($_.Id -eq $ProcKeyWord) -or ($_.Description -match $ProcKeyWord)})}
+        Write-Host "TRY BLOCK ERROR WHEN GETTING PROCESSES"
     }
+    $Global:timeGetProcess = "$([int]((Get-Date) - $Global:timeGetProcess0).TotalMilliseconds) `tms to Get Processes in updProcs"
     #if (Compare-Object $Global:lastProcesses $Global:Processes) { #processes list has been changed  # maybe just check equality of two sorted Id lists????
-    if ((($Global:Processes.Id | Sort-Object) -join '') -ne (($Global:lastProcesses.Id | Sort-Object) -join '')) {  #processes list has been changed
+    $Global:timeGetRawProcess0 = (Get-Date)
+        if ((($Global:Processes.Id | Sort-Object) -join '') -ne (($Global:lastProcesses.Id | Sort-Object) -join '')) {  #processes list has been changed
         $allRawProcesses = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process"  # Getting all processes raw information
         $Global:table = @()
         if ($Global:Processes.Name) {$Global:table += $Global:Processes | ForEach-Object{
@@ -118,11 +122,15 @@ function updProcs {
         if ($Global:logging) {newLog}
         if ($Global:loggingSum) {newLogSum}
     }
+    $Global:timeGetRawProcess = "$([int]((Get-Date) - $Global:timeGetRawProcess0).TotalMilliseconds) `tms to get allRawProcesses in updProcs"
     $Global:lastProcesses = $Global:Processes
 }
 Function updCounters {
+    $Global:timeAllRawProcess0 = (Get-Date)
     $allRawProcesses = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process"  # Getting all processes raw information
+    $Global:timeAllRawProcess = "$([int]((Get-Date) - $Global:timeAllRawProcess0).TotalMilliseconds) `tms to get allRawProcesses in updCounters"
     
+    $Global:timeToUpdateTable0 = (Get-Date)
     foreach ($id in ($Global:Processes.Id)) {
         $allRawProcesses | Where-Object {$_.IDProcess -match $id} | ForEach-Object {
             $currentProc = $allRawProcesses.Where({$_.IDProcess -eq $id})
@@ -142,22 +150,20 @@ Function updCounters {
     $idleCPU = [math]::Round((($allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime - $Global:table.Where({$_.Name -eq 'TOTAL'}).LastIdleCPU) / ($allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS - $Global:table.Where({$_.Name -eq 'TOTAL'}).LastIdleTimestamp) / $Global:LogicalCPUs * 100), 2)
     $Global:table.Where({$_.Name -eq 'Sum'}).foreach({$_.Memory = [math]::Round($sumMem); $_.CPU = [math]::Round($sumCpu)})
     $Global:table.Where({$_.Name -eq 'TOTAL'}).foreach({$_.Memory = [math]::Round($Global:totalMemory - (Get-WmiObject Win32_PerfRawData_PerfOS_Memory).AvailableBytes/1mb); $_.CPU = 100 - [math]::Floor($idleCPU); $_.LastIdleCPU = $allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime; $_.LastIdleTimestamp = $allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS})
+    $Global:timeToUpdateTable = "$([int]((Get-Date) - $Global:timeToUpdateTable0).TotalMilliseconds) `tms to update Table in updCounters"
 }
 
 newProcs
 zero
-updCounters
-$Global:table | select * | ft
-return
+$debug = 1
 
 do {   
-    $timeProcs = (Get-Date)
+    $timeProcs0 = (Get-Date)
     updProcs
-    $msgProcs = "$(((Get-Date) - $timeProcs).TotalMilliseconds) ms for updProcs"
-    $time1 = (Get-Date)
+    $timeProcs = "$([int]((Get-Date) - $timeProcs0).TotalMilliseconds) ms for updProcs"
+    $timeCounters0 = (Get-Date)
     updCounters
-    #$msgProcs
-    #"$(((Get-Date) - $time1).TotalMilliseconds) ms for updCounters"
+    $timeCounters = "$([int]((Get-Date) - $timeCounters0).TotalMilliseconds) ms for updCounters"
 
     $sumCpu = $table.Where({$_.Name -eq 'Sum'}).CPU
     $sumMem = $table.Where({$_.Name -eq 'Sum'}).Memory
@@ -174,7 +180,7 @@ do {
     $table.Where({$_.Name -eq 'Low'}).foreach({$_.Memory = [math]::Round($lowMem); $_.CPU = [math]::Round($lowCpu)})
     $qt++
 
-    Clear-Host
+    if (-not $Debug) {Clear-Host}
     $table | Format-Table -AutoSize
     
     $diff = ((get-date) - $startTime)
@@ -214,6 +220,12 @@ do {
         "table:
         $Global:remTable"
         $remCounter--
+    }
+    if ($debug) {
+        Write-Host "$Global:timeGetProcess"
+        Write-Host "$Global:timeGetRawProcess"
+        Write-Host "$Global:timeAllRawProcess"
+        Write-Host "$Global:timeToUpdateTable"
     }
     #looking for <Esc> or <R> or <Space> press
     if ($host.ui.RawUi.KeyAvailable) {

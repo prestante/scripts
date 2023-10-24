@@ -5,7 +5,7 @@
 
 $properties = 'Name, IDProcess, Timestamp_Sys100NS, PercentProcessorTime, WorkingSet'
 $all = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process"
-$all | Where-Object {$_.Name -match 'Chrome'} | Select-Object -Property $properties.Split(', ') | ft
+$all | Where-Object {$_.Name -match 'Edge'} | Select-Object -Property $properties.Split(', ') | ft
 return
 
 do {
