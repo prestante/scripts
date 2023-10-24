@@ -7,7 +7,7 @@ $Global:totalMemory = (Get-WmiObject Win32_PhysicalMemory | Measure-Object -Prop
 Write-Host "Done" -fo Yellow -ba Black
 Update-TypeData -TypeName procListType -DefaultDisplayPropertySet 'Name','Id','Memory','CPU' -ea SilentlyContinue  # this is to display by default only props needed
 $peakDateCpu = $peakDateMem = Get-Date  # starting date to compare newer dates with it
-$Global:lastProcesses = @{ID=4294967296}  # impossible ID for a comparison in updProcs to show difference for the keywords with no processes
+$Global:lastTable = @{'Key'=[PSCustomObject]@{ID=4294967296}}  # impossible ID for a comparison in updProcs to show difference for the keywords with no processes
 function GD {Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff'}
 function newLog {
     $Global:logFile = "C:\PS\logs\$(Get-Date -Format 'yyyy-MM-dd HH-mm-ss').csv"
@@ -31,7 +31,7 @@ function newProcs {
         #$Global:EnteredWords = Read-Host "Enter Key Word(s)"
         #$Global:EnteredWords = 'ADC.Services'
         $Global:EnteredWords = 'edge'
-        $Global:ProcKeyWords = $Global:EnteredWords -split ','
+        $Global:ProcKeyWords = $Global:EnteredWords -join '|'
         updProcs
         return 
         if ($Global:Processes) {
@@ -53,67 +53,46 @@ Function zero {
 }
 function updProcs {
     $Global:timeGetRawProcess0 = (Get-Date)
-    $Global:Processes = @()
-    $allRawProcesses = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process"  # Getting all processes raw information
-    foreach ($ProcKeyWord in $Global:ProcKeyWords) {$Global:Processes += @($allRawProcesses | Where-Object {$_.Name -match $ProcKeyWord -or $_.IDProcess -match $ProcKeyWord})}
-
-        if ((($Global:Processes.IdProcess | Sort-Object) -join '') -ne (($Global:lastProcesses.IdProcess | Sort-Object) -join '')) {  #processes list has been changed
-        $Global:table = @()
-        if ($Global:Processes.Name) {$Global:table += $Global:Processes | ForEach-Object{
-            $tempID = $_.IdProcess  # just in case to avoid double $_ $_ in one string
-            $obj = [pscustomobject]@{
+    if ((($Global:Table.Values.Id | Sort-Object) -join '') -ne (($Global:lastTable.Values.Id | Sort-Object) -join '')) {  # old and new Table are different list has been changed
+        $allRawProcesses = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE NOT Name='_Total'"
+        $Global:Table = [ordered]@{}
+        $allRawProcesses | Where-Object {$_.Name -match $Global:ProcKeyWords} | ForEach-Object {
+            $Global:Table.Add([string]$_.IDProcess, [PSCustomObject]@{
                 Name = $_.Name  -replace '^Harris.Automation.ADC.Services.' -replace 'Host' -replace 'Service' -replace 'Validation' -replace '#\d+$'
-                Id = $tempID
+                Id = $_.IDProcess
                 Memory = 0
                 CPU = 0
+                DecimalCPU = 0
                 Start = (Get-Process -Id $_.IDProcess).StartTime  # looks like it doesn't affect the performance
-                LastRawMEM = $allRawProcesses.Where({$_.IDProcess -eq $tempID}).WorkingSet
-                LastRawCPU = $allRawProcesses.Where({$_.IDProcess -eq $tempID}).PercentProcessorTime
-                LastTimestamp = $allRawProcesses.Where({$_.IDProcess -eq $tempID}).Timestamp_Sys100NS
-            }
-            $obj.PSTypeNames.Add("procListType")
-            $obj
-        }} else {$Global:table += [pscustomobject]@{
-                Name = "$Global:enteredWords"
-                Id = "N/A"
+                LastPercentProcessorTime = $_.PercentProcessorTime
+                LastWorkingSet = $_.WorkingSet
+                LastTimestamp_Sys100NS = $_.Timestamp_Sys100NS
+            })
+        }
+        if (-not $Global:Table.Values.Id) {$Global:Table.Add($Global:ProcKeyWords, [PSCustomObject]@{
+            Name = "$Global:ProcKeyWords"
+            Id = "N/A"
+            Memory = 0
+            CPU = 0})
+            $Global:logging = $Global:loggingSum = $null}
+        $Global:Table.Add('Divider', [PSCustomObject]@{Name = '---------------'})
+        $Global:Table.Add('Sum', [pscustomobject]@{Name = 'Sum'; Memory = 0; CPU = 0; DecimalCPU = 0})
+        $Global:Table.Add('Space1', [PSCustomObject]@{})
+        $Global:Table.Add('Peak', [pscustomobject]@{Name = 'Peak'; Memory = 0; CPU = 0})
+        $Global:Table.Add('Average', [pscustomobject]@{Name = 'Average'; Memory = 0; CPU = 0})
+        $Global:Table.Add('Low', [pscustomobject]@{Name = 'Low'; Memory = 0; CPU = 0})
+        $Global:Table.Add('Space2', [PSCustomObject]@{})
+        $allRawProcesses | Where-Object {$_.Name -eq 'Idle'} | ForEach-Object {
+            $Global:Table.Add('TOTAL', [PSCustomObject]@{
+                Name = 'TOTAL'
+                LastMemory = 0
                 Memory = 0
-                CPU = 0}
-                $Global:logging = $Global:loggingSum = $null
-            }
-        $Global:table += [pscustomobject]@{
-            Name = '---------------'
-        }
-        $Global:table += [pscustomobject]@{
-            Name = 'Sum'
-            Memory = 0
-            CPU = 0
-        }
-        $Global:table += [pscustomobject]@{
-        }
-        $Global:table += [pscustomobject]@{
-            Name = "Peak"
-            Memory = 0
-            CPU = 0
-        }
-        $Global:table += [pscustomobject]@{
-            Name = 'Average'
-            Memory = 0
-            CPU = 0
-        }
-        $Global:table += [pscustomobject]@{
-            Name = 'Low'
-            Memory = 0
-            CPU = 0
-        }
-        $Global:table += [pscustomobject]@{
-        }
-        $Global:table += [pscustomobject]@{
-            Name = 'TOTAL'
-            Memory = 0
-            CPU = 0
-            LastIdleCPU = $allRawProcesses.Where({$_.Name -eq 'Idle'}).PercentProcessorTime
-            LastIdleTimestamp = $allRawProcesses.Where({$_.Name -eq 'Idle'}).Timestamp_Sys100NS
-        }
+                LastCPU = 0
+                CPU = 0
+                LastPercentProcessorTime = $_.PercentProcessorTime
+                LastTimestamp_Sys100NS = $_.Timestamp_Sys100NS
+            })
+        }        
         if ($Global:logging) {newLog}
         if ($Global:loggingSum) {newLogSum}
     }
@@ -122,41 +101,41 @@ function updProcs {
 }
 Function updCounters {
     $Global:timeAllRawProcess0 = (Get-Date)
-    $allRawProcesses = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process"  # Getting all processes raw information
+    $allRawProcesses = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE NOT Name='_Total'"  # Getting all processes raw information (except _Total because its Id equals 0 and equals Idle which is also 0)
     $Global:timeAllRawProcess = "$([int]((Get-Date) - $Global:timeAllRawProcess0).TotalMilliseconds) `tms to get allRawProcesses in updCounters"
     
-    $RawProcesses = @()
-    foreach ($id in ($Global:Processes.IdProcess)) {$allRawProcesses | Where-Object {$_.IDProcess -eq $id} | ForEach-Object {$RawProcesses += $_}}  # the longest part
-    $sumMem = $sumCpu = [decimal]0
+    # There is still a way to speed up the process by converting entire $allRawProcesses to the hash table like it is done in updProcs and then get its value very fast
+    #$RawProcesses = @()  # I think we don't need this
+    #foreach ($id in ($Global:Processes.IdProcess)) {$allRawProcesses | Where-Object {$_.IDProcess -eq $id} | ForEach-Object {$RawProcesses += $_}}  # the longest part
+    $Global:Table."Sum".Memory = $Global:Table."Sum".CPU = [decimal]0
     $Global:timeToUpdateTable0 = (Get-Date)
-    $RawProcesses | ForEach-Object {
-        $currentProc = $_  # for avoiding double $_ $_ in one line
-        $id = $currentProc.IDProcess  # Id we are currently working on
-        $mem = $currentProc.WorkingSet/1mb
-        $cpu = [math]::Round((($currentProc.PercentProcessorTime - $Global:table.Where({$_.Id -eq $id}).LastRawCPU) / ($currentProc.Timestamp_Sys100NS - $Global:table.Where({$_.Id -eq $id}).LastTimestamp) / $Global:LogicalCPUs * 100), 2)
-        
-        $Global:table.Where({$_.Id -eq $id}).foreach({  # updating Global table with new raw and calculated results
-            $_.Memory = [int][math]::Round($mem)
-            $_.CPU = [int][math]::Round($cpu)
-            $_.LastRawMEM = $currentProc.WorkingSet
-            $_.LastRawCPU = $currentProc.PercentProcessorTime
-            $_.LastTimestamp = $currentProc.Timestamp_Sys100NS
-        })
-        $sumMem += $mem; $sumCpu += $cpu
-    } #| Select-Object -Property Name, IDProcess, Timestamp_Sys100NS, WorkingSet
-    
-    $idleCPU = [math]::Round((($allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime - $Global:table.Where({$_.Name -eq 'TOTAL'}).LastIdleCPU) / ($allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS - $Global:table.Where({$_.Name -eq 'TOTAL'}).LastIdleTimestamp) / $Global:LogicalCPUs * 100), 2)
-    $Global:table.Where({$_.Name -eq 'Sum'}).foreach({$_.Memory = [int][math]::Round($sumMem); $_.CPU = [int][math]::Round($sumCpu)})
-    $Global:table.Where({$_.Name -eq 'TOTAL'}).foreach({$_.Memory = [int][math]::Round($Global:totalMemory - (Get-WmiObject Win32_PerfRawData_PerfOS_Memory).AvailableBytes/1mb); $_.CPU = [int](100 - [math]::Floor($idleCPU)); $_.LastIdleCPU = $allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime; $_.LastIdleTimestamp = $allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS})
+    foreach ($id in $Global:Table.Values.Id) {
+        if ($id) {
+            $currentRawProc = $allRawProcesses.where({$_.IDProcess -eq $id})
+            $currentTableProc = $Global:Table."$id"  # for avoiding double $_ $_ in one line
+            $currentTableProc.Memory = [int]($currentRawProc.WorkingSet/1mb)
+            $currentTableProc.DecimalCPU = ($currentRawProc.PercentProcessorTime - $currentTableProc.LastPercentProcessorTime) / ($currentRawProc.Timestamp_Sys100NS - $currentTableProc.LastTimestamp_Sys100NS) / $Global:LogicalCPUs * 100
+            $currentTableProc.CPU = [int]$currentTableProc.DecimalCPU
+            $currentTableProc.LastWorkingSet = $currentRawProc.WorkingSet
+            $currentTableProc.LastPercentProcessorTime = $currentRawProc.PercentProcessorTime
+            $currentTableProc.LastTimestamp_Sys100NS = $currentRawProc.Timestamp_Sys100NS
+            $Global:Table.'Sum'.Memory += $currentTableProc.Memory
+            $Global:Table.'Sum'.DecimalCPU += $currentTableProc.DecimalCPU
+        }
+    }
+    $Global:Table."Sum".CPU = [int]$Global:Table.'Sum'.DecimalCPU
+    $Global:Table.'TOTAL'.CPU = [int](100-[math]::Floor(($allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime - $Global:Table.'TOTAL'.LastPercentProcessorTime) / ($allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS - $Global:Table.'TOTAL'.LastTimestamp_Sys100NS) / $Global:LogicalCPUs * 100))
+    $Global:Table.'TOTAL'.Memory = [int]($Global:totalMemory - (Get-WmiObject Win32_PerfRawData_PerfOS_Memory).AvailableBytes/1mb)
+    $Global:Table.'TOTAL'.LastPercentProcessorTime = $allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime
+    $Global:Table.'TOTAL'.LastTimestamp_Sys100NS = $allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS
     $Global:timeToUpdateTable = "$([int]((Get-Date) - $Global:timeToUpdateTable0).TotalMilliseconds) `tms to update Table in updCounters"
 }
 
 newProcs
 zero
 $debug = 1
-#updCounters
-#$Global:table | select * | ft
-#return
+updCounters
+#$Global:Table.Values | select * | ft
 
 do {   
     $timeProcs0 = (Get-Date)
@@ -182,7 +161,7 @@ do {
     $qt++
 
     if (-not $Debug) {Clear-Host}
-    $table | Format-Table -AutoSize
+    $Global:Table.Values | Select-Object -Property Name, Id, Memory, CPU | Format-Table -AutoSize
     
     $diff = ((get-date) - $startTime)
     Write-Host ("Elapsed {0:00}:{1:mm}:{1:ss}  (F1) - help" -f [math]::Floor($diff.TotalHours),$diff) -f Gray
