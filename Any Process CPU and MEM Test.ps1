@@ -28,12 +28,12 @@ function newProcs {
         #Write-Host "Be careful with the Key Word. If some new process suitable for your Key Word will appear in the system later, it will be added to the list automatically." -f Yellow -b Black
         #Write-Host "You can also type several keywords separated by comma. They all will be used at once to filter the processes list." -f Yellow -b Black
         #Write-Host "Later you will be able to enter new Key Word by pressing <N>." -f Cyan -b Black
-        $Global:EnteredWords = Read-Host "Enter Key Word(s)"
+        #$Global:EnteredWords = Read-Host "Enter Key Word(s)"
         #$Global:EnteredWords = 'ADC.Services'
-        #$Global:EnteredWords = 'edge'
+        $Global:EnteredWords = 'edge'
         $Global:ProcKeyWords = $Global:EnteredWords -split ','
         updProcs
-
+        return 
         if ($Global:Processes) {
             $Global:Processes | Select-Object -Property Name,IdProcess -Unique | Format-Table
             $agree = Read-Host "Are you OK with these processes? Default is 'yes' (y/n)"
@@ -125,10 +125,10 @@ Function updCounters {
     $allRawProcesses = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process"  # Getting all processes raw information
     $Global:timeAllRawProcess = "$([int]((Get-Date) - $Global:timeAllRawProcess0).TotalMilliseconds) `tms to get allRawProcesses in updCounters"
     
-    $Global:timeToUpdateTable0 = (Get-Date)
     $RawProcesses = @()
-    foreach ($id in ($Global:Processes.IdProcess)) {$allRawProcesses | Where-Object {$_.IDProcess -eq $id} | ForEach-Object {$RawProcesses += $_}}
+    foreach ($id in ($Global:Processes.IdProcess)) {$allRawProcesses | Where-Object {$_.IDProcess -eq $id} | ForEach-Object {$RawProcesses += $_}}  # the longest part
     $sumMem = $sumCpu = [decimal]0
+    $Global:timeToUpdateTable0 = (Get-Date)
     $RawProcesses | ForEach-Object {
         $currentProc = $_  # for avoiding double $_ $_ in one line
         $id = $currentProc.IDProcess  # Id we are currently working on
