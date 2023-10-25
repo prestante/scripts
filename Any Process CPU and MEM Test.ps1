@@ -108,7 +108,7 @@ Function updCounters {
     #foreach ($id in ($Global:Processes.IdProcess)) {$allRawProcesses | Where-Object {$_.IDProcess -eq $id} | ForEach-Object {$RawProcesses += $_}}  # the longest part
     $Global:table."Sum".Memory = $Global:table."Sum".CPU = $Global:table."Sum".DecimalCPU = [decimal]0
     $Global:timeToUpdateTable = Measure-Command {
-        foreach ($id in $Global:table.Values.Id) {
+        <#foreach ($id in $Global:table.Values.Id) {
             if ($id) {
                 $currentRawProc = $allRawProcesses.where({$_.IDProcess -eq $id})
                 $currentTableProc = $Global:table."$id"  # for avoiding double $_ $_ in one line
@@ -121,12 +121,12 @@ Function updCounters {
                 $Global:table.'Sum'.Memory += $currentTableProc.Memory
                 $Global:table.'Sum'.DecimalCPU += $currentTableProc.DecimalCPU
             }
-        }
-        $Global:table."Sum".CPU = [int]$Global:table.'Sum'.DecimalCPU
-        $Global:table.'TOTAL'.CPU = [int](100-[math]::Floor(($allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime - $Global:table.'TOTAL'.LastPercentProcessorTime) / ($allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS - $Global:table.'TOTAL'.LastTimestamp_Sys100NS) / $Global:LogicalCPUs * 100))
-        $Global:table.'TOTAL'.Memory = [int]($Global:totalMemory - (Get-WmiObject Win32_PerfRawData_PerfOS_Memory).AvailableBytes/1mb)
-        $Global:table.'TOTAL'.LastPercentProcessorTime = $allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime
-        $Global:table.'TOTAL'.LastTimestamp_Sys100NS = $allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS
+        }#>
+        #$Global:table."Sum".CPU = [int]$Global:table.'Sum'.DecimalCPU
+        #$Global:table.'TOTAL'.CPU = [int](100-[math]::Floor(($allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime - $Global:table.'TOTAL'.LastPercentProcessorTime) / ($allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS - $Global:table.'TOTAL'.LastTimestamp_Sys100NS) / $Global:LogicalCPUs * 100))
+        #$Global:table.'TOTAL'.Memory = [int]($Global:totalMemory - (Get-WmiObject Win32_PerfRawData_PerfOS_Memory).AvailableBytes/1mb)
+        #$Global:table.'TOTAL'.LastPercentProcessorTime = $allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime
+        #$Global:table.'TOTAL'.LastTimestamp_Sys100NS = $allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS
     }
 }
 
@@ -146,25 +146,27 @@ do {
         updCounters
     }
 
-    if ($table.'Sum'.CPU + $table.'Sum'.Memory -eq 0) {$zeroFlag++} else {$zeroFlag=0}
-    if (($zeroFlag -eq 5) -or (($table.'Sum'.CPU+$table.'Sum'.Memory -eq 0) -and ((Get-Date)-($startTime)).TotalSeconds -le 5)) {$zeroFlag=0 ; zero}
-    [int]$table.'Peak'.CPU = if ($table.'Peak'.CPU -lt $table.'Sum'.CPU) {$table.'Sum'.CPU; $peakDateCpu = Get-Date} else {$table.'Peak'.CPU}
-    [int]$table.'Peak'.Memory = if ($table.'Peak'.Memory -lt $table.'Sum'.Memory) {$table.'Sum'.Memory; $peakDateMem = Get-Date} else {$table.'Peak'.Memory}
-    [int]$table.'Low'.CPU = if ($table.'Low'.CPU -gt $table.'Sum'.CPU) {$table.'Sum'.CPU; $lowDateCpu = Get-Date} else {$table.'Low'.CPU}
-    [int]$table.'Low'.Memory = if (($table.'Low'.Memory -gt $table.'Sum'.Memory) -or ($table.'Low'.Memory -eq 0)) {$table.'Sum'.Memory; $lowDateMem = Get-Date} else {$table.'Low'.Memory}
-    [double]$table.'Average'.DecimalCPU = ($table.'Average'.DecimalCPU * $qt + $table.'Sum'.DecimalCPU) / ($qt + 1)
-    [int]$table.'Average'.CPU = $table.'Average'.DecimalCPU
-    $temp = $table.'Average'.Memory
-    [int]$table.'Average'.Memory = ($temp * $qt + $table.'Sum'.Memory) / ($qt + 1)
-    #[int]$table.'Average'.Memory = ($table.'Average'.Memory * $qt + $table.'Sum'.Memory) / ($qt + 1)
-    $qt++
+    $Global:timePeakLowAvg = Measure-Command {
+        if ($table.'Sum'.CPU + $table.'Sum'.Memory -eq 0) {$zeroFlag++} else {$zeroFlag=0}
+        if (($zeroFlag -eq 5) -or (($table.'Sum'.CPU+$table.'Sum'.Memory -eq 0) -and ((Get-Date)-($startTime)).TotalSeconds -le 5)) {$zeroFlag=0 ; zero}
+        [int]$table.'Peak'.CPU = if ($table.'Peak'.CPU -lt $table.'Sum'.CPU) {$table.'Sum'.CPU; $peakDateCpu = Get-Date} else {$table.'Peak'.CPU}
+        [int]$table.'Peak'.Memory = if ($table.'Peak'.Memory -lt $table.'Sum'.Memory) {$table.'Sum'.Memory; $peakDateMem = Get-Date} else {$table.'Peak'.Memory}
+        [int]$table.'Low'.CPU = if ($table.'Low'.CPU -gt $table.'Sum'.CPU) {$table.'Sum'.CPU; $lowDateCpu = Get-Date} else {$table.'Low'.CPU}
+        [int]$table.'Low'.Memory = if (($table.'Low'.Memory -gt $table.'Sum'.Memory) -or ($table.'Low'.Memory -eq 0)) {$table.'Sum'.Memory; $lowDateMem = Get-Date} else {$table.'Low'.Memory}
+        [double]$table.'Average'.DecimalCPU = ($table.'Average'.DecimalCPU * $qt + $table.'Sum'.DecimalCPU) / ($qt + 1)
+        [int]$table.'Average'.CPU = $table.'Average'.DecimalCPU
+        $temp = $table.'Average'.Memory
+        [int]$table.'Average'.Memory = ($temp * $qt + $table.'Sum'.Memory) / ($qt + 1)
+        #[int]$table.'Average'.Memory = ($table.'Average'.Memory * $qt + $table.'Sum'.Memory) / ($qt + 1)
+        $qt++
+    }
 
     if (-not $Debug) {Clear-Host}
     $Global:table.Values | Select-Object -Property Name, Id, Memory, CPU, DecimalCPU | Format-Table -AutoSize
     
     $diff = ((get-date) - $startTime)
     Write-Host ("Elapsed {0:00}:{1:mm}:{1:ss}  (F1) - help" -f [math]::Floor($diff.TotalHours),$diff) -f Gray
-
+    
     if ($logging) {
         Write-Host $logFile -f Cyan
         $string = "$(GD)"
@@ -193,15 +195,16 @@ do {
     if ($debug) {
         #Write-Host "$([int]$Global:timeProcs.TotalMilliseconds) `tms for updProcs"
             Write-Host "$([int]$Global:timeGetProcs.TotalMilliseconds) `tms to get procs in updProcs"
-            #Write-Host "$([int]$Global:timeGetRawProcess.TotalMilliseconds) `tms to get allRawProcesses in updProcs"
+            Write-Host "$([int]$Global:timeGetRawProcess.TotalMilliseconds) `tms to get allRawProcesses in updProcs"
         #Write-Host "$([int]$Global:timeCounters.TotalMilliseconds) `tms for updCounters"
-            #Write-Host "$([int]$Global:timeAllRawProcess.TotalMilliseconds) `tms to get allRawProcesses in updCounters"
+            Write-Host "$([int]$Global:timeAllRawProcess.TotalMilliseconds) `tms to get allRawProcesses in updCounters"
             Write-Host "$([int]$Global:timeToUpdateTable.TotalMilliseconds) `tms to update Table in updCounters"
-        $Global:timeMain = $Global:timeProcs = $Global:timeGetProcs = $Global:timeGetRawProcess = $Global:timeCounters = $Global:timeAllRawProcess = $Global:timeToUpdateTable = 0
+            Write-Host "$([int]$Global:timePeakLowAvg.TotalMilliseconds) `tms to update Table in main"
+        $Global:timeMain = $Global:timeProcs = $Global:timeGetProcs = $Global:timeGetRawProcess = $Global:timeCounters = $Global:timeAllRawProcess = $Global:timeToUpdateTable = $Global:timePeakLowAvg = 0
     }
     
     $timeMain1 = [int]((Get-Date) - $timeMain0).TotalMilliseconds
-    if ($debug) {Write-Host "$timeMain1 `tms for main cycle"}
+    if ($debug) {Write-Host "$timeMain1 `tms TOTAL"}
     if ($timeMain1 -lt 999) {Start-Sleep -Milliseconds (999 - $timeMain1)}
 
     #looking for <Esc> or <R> or <Space> press
