@@ -11,6 +11,7 @@ do {
                 WorkingSet = $_.WorkingSet
                 Timestamp_Sys100NS = $_.Timestamp_Sys100NS
             })
+            #$allRawProcesses.Add($_.IDProcess, '')
         }
     }
 } While ((Read-Host) -ne 'n')
