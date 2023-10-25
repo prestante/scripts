@@ -54,7 +54,8 @@ function updProcs {
     $Global:timeGetProcs = Measure-Command {$Global:procs = get-process | Where-Object {$_.Id -match $Global:ProcKeyWords -or $_.Name -match $Global:ProcKeyWords}}
     if ((($Global:table.Values.Id | Sort-Object) -join '') -ne (($Global:procs.Id | Sort-Object) -join '')) {  # old and new Table are different list has been changed
         $Global:timeGetRawProcess = Measure-Command {
-            $allRawProcesses = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE NOT Name='_Total'"
+            #$allRawProcesses = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE NOT Name='_Total'"
+            $allRawProcesses = Get-WmiObject -Query "SELECT Name,IDProcess,PercentProcessorTime,WorkingSet,Timestamp_Sys100NS FROM Win32_PerfRawData_PerfProc_Process WHERE NOT Name='_Total'"
         }
         $Global:table = [ordered]@{}
         $allRawProcesses | Where-Object {$_.Name -match $Global:ProcKeyWords} | ForEach-Object {

@@ -2,8 +2,15 @@
 do {
     Measure-Command {
         #$Global:ProcKeyWords = 'chrome', 'taskmgrr' -join '|'
-        $allRawProcesses = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE NOT Name='_Total'"
-        $hash = [ordered]@{}
-        $allRawProcesses | % {$hash.Add($_.IDProcess, '')}
+        $allRawProcesses = [ordered]@{}
+        Get-WmiObject -Query "SELECT Name,IDProcess,PercentProcessorTime,WorkingSet,Timestamp_Sys100NS FROM Win32_PerfRawData_PerfProc_Process WHERE NOT Name='_Total'" | ForEach-Object {
+            $allRawProcesses.Add($_.IDProcess, [PSCustomObject]@{
+                Name = $_.Name
+                IDProcess = $_.IDProcess
+                PercentProcessorTime = $_.PercentProcessorTime
+                WorkingSet = $_.WorkingSet
+                Timestamp_Sys100NS = $_.Timestamp_Sys100NS
+            })
+        }
     }
 } While ((Read-Host) -ne 'n')
