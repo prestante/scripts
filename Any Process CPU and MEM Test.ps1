@@ -52,38 +52,39 @@ Function zero {
     $Global:qt = [uint64]0
 }
 function updProcs {
-    $Global:timeGetRawProcess0 = (Get-Date)
-    if ((($Global:Table.Values.Id | Sort-Object) -join '') -ne (($Global:lastTable.Values.Id | Sort-Object) -join '')) {  # old and new Table are different list has been changed
-        $allRawProcesses = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE NOT Name='_Total'"
-        $Global:Table = [ordered]@{}
+    if ((($Global:table.Values.Id | Sort-Object) -join '') -ne (($Global:lastTable.Values.Id | Sort-Object) -join '')) {  # old and new Table are different list has been changed
+        $Global:timeGetRawProcess = Measure-Command {
+            $allRawProcesses = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE NOT Name='_Total'"
+        }
+        $Global:table = [ordered]@{}
         $allRawProcesses | Where-Object {$_.Name -match $Global:ProcKeyWords} | ForEach-Object {
-            $Global:Table.Add([string]$_.IDProcess, [PSCustomObject]@{
+            $Global:table.Add([string]$_.IDProcess, [PSCustomObject]@{
                 Name = $_.Name  -replace '^Harris.Automation.ADC.Services.' -replace 'Host' -replace 'Service' -replace 'Validation' -replace '#\d+$'
                 Id = $_.IDProcess
                 Memory = 0
                 CPU = 0
                 DecimalCPU = 0
-                Start = (Get-Process -Id $_.IDProcess).StartTime  # looks like it doesn't affect the performance
+                Start = (Get-Process -Id $_.IDProcess -ea SilentlyContinue).StartTime  # looks like it doesn't affect the performance, however it sometimes leads to errors
                 LastPercentProcessorTime = $_.PercentProcessorTime
                 LastWorkingSet = $_.WorkingSet
                 LastTimestamp_Sys100NS = $_.Timestamp_Sys100NS
             })
         }
-        if (-not $Global:Table.Values.Id) {$Global:Table.Add($Global:ProcKeyWords, [PSCustomObject]@{
+        if (-not $Global:table.Values.Id) {$Global:table.Add($Global:ProcKeyWords, [PSCustomObject]@{
             Name = "$Global:ProcKeyWords"
             Id = "N/A"
             Memory = 0
             CPU = 0})
             $Global:logging = $Global:loggingSum = $null}
-        $Global:Table.Add('Divider', [PSCustomObject]@{Name = '---------------'})
-        $Global:Table.Add('Sum', [pscustomobject]@{Name = 'Sum'; Memory = 0; CPU = 0; DecimalCPU = 0})
-        $Global:Table.Add('Space1', [PSCustomObject]@{})
-        $Global:Table.Add('Peak', [pscustomobject]@{Name = 'Peak'; Memory = 0; CPU = 0})
-        $Global:Table.Add('Average', [pscustomobject]@{Name = 'Average'; Memory = 0; CPU = 0})
-        $Global:Table.Add('Low', [pscustomobject]@{Name = 'Low'; Memory = 0; CPU = 0})
-        $Global:Table.Add('Space2', [PSCustomObject]@{})
+        $Global:table.Add('Divider', [PSCustomObject]@{Name = '---------------'})
+        $Global:table.Add('Sum', [pscustomobject]@{Name = 'Sum'; Memory = 0; CPU = 0; DecimalCPU = 0})
+        $Global:table.Add('Space1', [PSCustomObject]@{})
+        $Global:table.Add('Peak', [pscustomobject]@{Name = 'Peak'; Memory = 0; CPU = 0})
+        $Global:table.Add('Average', [pscustomobject]@{Name = 'Average'; Memory = 0; CPU = 0; DecimalCPU = 0})
+        $Global:table.Add('Low', [pscustomobject]@{Name = 'Low'; Memory = 0; CPU = 0})
+        $Global:table.Add('Space2', [PSCustomObject]@{})
         $allRawProcesses | Where-Object {$_.Name -eq 'Idle'} | ForEach-Object {
-            $Global:Table.Add('TOTAL', [PSCustomObject]@{
+            $Global:table.Add('TOTAL', [PSCustomObject]@{
                 Name = 'TOTAL'
                 LastMemory = 0
                 Memory = 0
@@ -96,38 +97,37 @@ function updProcs {
         if ($Global:logging) {newLog}
         if ($Global:loggingSum) {newLogSum}
     }
-    $Global:timeGetRawProcess = "$([int]((Get-Date) - $Global:timeGetRawProcess0).TotalMilliseconds) `tms to get allRawProcesses in updProcs"
-    $Global:lastProcesses = $Global:Processes
+    $Global:lastTable = $Global:table
 }
 Function updCounters {
-    $Global:timeAllRawProcess0 = (Get-Date)
-    $allRawProcesses = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE NOT Name='_Total'"  # Getting all processes raw information (except _Total because its Id equals 0 and equals Idle which is also 0)
-    $Global:timeAllRawProcess = "$([int]((Get-Date) - $Global:timeAllRawProcess0).TotalMilliseconds) `tms to get allRawProcesses in updCounters"
+    $Global:timeAllRawProcess = Measure-Command {
+        $allRawProcesses = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE NOT Name='_Total'"  # Getting all processes raw information (except _Total because its Id equals 0 and equals Idle which is also 0)
+    }
     
     # There is still a way to speed up the process by converting entire $allRawProcesses to the hash table like it is done in updProcs and then get its value very fast
     #$RawProcesses = @()  # I think we don't need this
     #foreach ($id in ($Global:Processes.IdProcess)) {$allRawProcesses | Where-Object {$_.IDProcess -eq $id} | ForEach-Object {$RawProcesses += $_}}  # the longest part
-    $Global:Table."Sum".Memory = $Global:Table."Sum".CPU = [decimal]0
+    $Global:table."Sum".Memory = $Global:table."Sum".CPU = $Global:table."Sum".DecimalCPU = [decimal]0
     $Global:timeToUpdateTable0 = (Get-Date)
-    foreach ($id in $Global:Table.Values.Id) {
+    foreach ($id in $Global:table.Values.Id) {
         if ($id) {
             $currentRawProc = $allRawProcesses.where({$_.IDProcess -eq $id})
-            $currentTableProc = $Global:Table."$id"  # for avoiding double $_ $_ in one line
+            $currentTableProc = $Global:table."$id"  # for avoiding double $_ $_ in one line
             $currentTableProc.Memory = [int]($currentRawProc.WorkingSet/1mb)
             $currentTableProc.DecimalCPU = ($currentRawProc.PercentProcessorTime - $currentTableProc.LastPercentProcessorTime) / ($currentRawProc.Timestamp_Sys100NS - $currentTableProc.LastTimestamp_Sys100NS) / $Global:LogicalCPUs * 100
             $currentTableProc.CPU = [int]$currentTableProc.DecimalCPU
             $currentTableProc.LastWorkingSet = $currentRawProc.WorkingSet
             $currentTableProc.LastPercentProcessorTime = $currentRawProc.PercentProcessorTime
             $currentTableProc.LastTimestamp_Sys100NS = $currentRawProc.Timestamp_Sys100NS
-            $Global:Table.'Sum'.Memory += $currentTableProc.Memory
-            $Global:Table.'Sum'.DecimalCPU += $currentTableProc.DecimalCPU
+            $Global:table.'Sum'.Memory += $currentTableProc.Memory
+            $Global:table.'Sum'.DecimalCPU += $currentTableProc.DecimalCPU
         }
     }
-    $Global:Table."Sum".CPU = [int]$Global:Table.'Sum'.DecimalCPU
-    $Global:Table.'TOTAL'.CPU = [int](100-[math]::Floor(($allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime - $Global:Table.'TOTAL'.LastPercentProcessorTime) / ($allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS - $Global:Table.'TOTAL'.LastTimestamp_Sys100NS) / $Global:LogicalCPUs * 100))
-    $Global:Table.'TOTAL'.Memory = [int]($Global:totalMemory - (Get-WmiObject Win32_PerfRawData_PerfOS_Memory).AvailableBytes/1mb)
-    $Global:Table.'TOTAL'.LastPercentProcessorTime = $allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime
-    $Global:Table.'TOTAL'.LastTimestamp_Sys100NS = $allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS
+    $Global:table."Sum".CPU = [int]$Global:table.'Sum'.DecimalCPU
+    $Global:table.'TOTAL'.CPU = [int](100-[math]::Floor(($allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime - $Global:table.'TOTAL'.LastPercentProcessorTime) / ($allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS - $Global:table.'TOTAL'.LastTimestamp_Sys100NS) / $Global:LogicalCPUs * 100))
+    $Global:table.'TOTAL'.Memory = [int]($Global:totalMemory - (Get-WmiObject Win32_PerfRawData_PerfOS_Memory).AvailableBytes/1mb)
+    $Global:table.'TOTAL'.LastPercentProcessorTime = $allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime
+    $Global:table.'TOTAL'.LastTimestamp_Sys100NS = $allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS
     $Global:timeToUpdateTable = "$([int]((Get-Date) - $Global:timeToUpdateTable0).TotalMilliseconds) `tms to update Table in updCounters"
 }
 
@@ -135,33 +135,32 @@ newProcs
 zero
 $debug = 1
 updCounters
-#$Global:Table.Values | select * | ft
+#$Global:table.Values | select * | ft
 
-do {   
-    $timeProcs0 = (Get-Date)
-    updProcs
-    $timeProcs = "$([int]((Get-Date) - $timeProcs0).TotalMilliseconds) ms for updProcs"
-    $timeCounters0 = (Get-Date)
-    updCounters
-    $timeCounters = "$([int]((Get-Date) - $timeCounters0).TotalMilliseconds) ms for updCounters"
+do {
+    $timeMain0 = (Get-Date)
+    $timeProcs = Measure-Command {
+        updProcs
+    }
+    $timeCounters = Measure-Command {
+        updCounters
+    }
 
-    $sumCpu = $table.Where({$_.Name -eq 'Sum'}).CPU
-    $sumMem = $table.Where({$_.Name -eq 'Sum'}).Memory
-    if ($sumCpu + $sumMem -eq 0) {$zeroFlag++} else {$zeroFlag=0}
-    if (($zeroFlag -eq 5) -or (($sumCpu+$sumMem -eq 0) -and ((Get-Date)-($startTime)).TotalSeconds -le 5)) {$zeroFlag=0 ; zero}
-    $peakCpu = if ($peakCpu -lt $sumCpu) {$sumCpu; $peakDateCpu = Get-Date} else {$peakCpu}
-    $peakMem = if ($peakMem -lt $sumMem) {$sumMem; $peakDateMem = Get-Date} else {$peakMem}
-    $lowCpu = if ($lowCpu -gt $sumCpu) {$sumCpu; $lowDateCpu = Get-Date} else {$lowCpu}
-    $lowMem = if (($lowMem -gt $sumMem) -or ($lowMem -eq 0)) {$sumMem; $lowDateMem = Get-Date} else {$lowMem}
-    [double]$avgCpu = ($avgCpu * $qt + $sumCpu) / ($qt + 1)
-    [double]$avgMem = ($avgMem * $qt + $sumMem) / ($qt + 1)
-    $table.Where({$_.Name -eq 'Peak'}).foreach({$_.Memory = [math]::Round($peakMem); $_.CPU = [math]::Round($peakCpu)})
-    $table.Where({$_.Name -eq 'Average'}).foreach({$_.Memory = [math]::Round($avgMem); $_.CPU = [math]::Round($avgCpu)})
-    $table.Where({$_.Name -eq 'Low'}).foreach({$_.Memory = [math]::Round($lowMem); $_.CPU = [math]::Round($lowCpu)})
+    if ($table.'Sum'.CPU + $table.'Sum'.Memory -eq 0) {$zeroFlag++} else {$zeroFlag=0}
+    if (($zeroFlag -eq 5) -or (($table.'Sum'.CPU+$table.'Sum'.Memory -eq 0) -and ((Get-Date)-($startTime)).TotalSeconds -le 5)) {$zeroFlag=0 ; zero}
+    [int]$table.'Peak'.CPU = if ($table.'Peak'.CPU -lt $table.'Sum'.CPU) {$table.'Sum'.CPU; $peakDateCpu = Get-Date} else {$table.'Peak'.CPU}
+    [int]$table.'Peak'.Memory = if ($table.'Peak'.Memory -lt $table.'Sum'.Memory) {$table.'Sum'.Memory; $peakDateMem = Get-Date} else {$table.'Peak'.Memory}
+    [int]$table.'Low'.CPU = if ($table.'Low'.CPU -gt $table.'Sum'.CPU) {$table.'Sum'.CPU; $lowDateCpu = Get-Date} else {$table.'Low'.CPU}
+    [int]$table.'Low'.Memory = if (($table.'Low'.Memory -gt $table.'Sum'.Memory) -or ($table.'Low'.Memory -eq 0)) {$table.'Sum'.Memory; $lowDateMem = Get-Date} else {$table.'Low'.Memory}
+    [double]$table.'Average'.DecimalCPU = ($table.'Average'.DecimalCPU * $qt + $table.'Sum'.DecimalCPU) / ($qt + 1)
+    [int]$table.'Average'.CPU = $table.'Average'.DecimalCPU
+    $temp = $table.'Average'.Memory
+    [int]$table.'Average'.Memory = ($temp * $qt + $table.'Sum'.Memory) / ($qt + 1)
+    #[int]$table.'Average'.Memory = ($table.'Average'.Memory * $qt + $table.'Sum'.Memory) / ($qt + 1)
     $qt++
 
     if (-not $Debug) {Clear-Host}
-    $Global:Table.Values | Select-Object -Property Name, Id, Memory, CPU | Format-Table -AutoSize
+    $Global:table.Values | Select-Object -Property Name, Id, Memory, CPU, DecimalCPU | Format-Table -AutoSize
     
     $diff = ((get-date) - $startTime)
     Write-Host ("Elapsed {0:00}:{1:mm}:{1:ss}  (F1) - help" -f [math]::Floor($diff.TotalHours),$diff) -f Gray
@@ -183,7 +182,7 @@ do {
     }
     if ($infoCounter) {
         Write-Host (
-            "Mem peak: {0}`t({2:MMM,dd HH:mm:ss})`nCPU peak: {1} `t({3:MMM,dd HH:mm:ss})" -f [math]::Round($peakMem),[math]::Round($peakCpu),$peakDateMem,$peakDateCpu
+            "Mem peak: {0}`t({2:MMM,dd HH:mm:ss})`nCPU peak: {1} `t({3:MMM,dd HH:mm:ss})" -f [math]::Round($table.'Peak'.Memory),[math]::Round($table.'Peak'.CPU),$peakDateMem,$peakDateCpu
         ) -f 7
         Write-Host "Press <C> - clear Peak/Avg/Timer" -f 7
         Write-Host "Press <N> - enter new keyword" -f 7
@@ -191,22 +190,23 @@ do {
         Write-Host "Press <M> - CSV log (sum of procs)" -f 7
         $infoCounter--
     }
-    if ($remCounter) {
-        Write-Host (
-            "Mem peak: {0}`t({2:MMM,dd HH:mm:ss})`nCPU peak: {1} `t({3:MMM,dd HH:mm:ss})" -f [math]::Round($peakMem),[math]::Round($peakCpu),$peakDateMem,$peakDateCpu
-        ) -f 7
-        "CounterResults:
-        $Global:remResults"
-        "table:
-        $Global:remTable"
-        $remCounter--
-    }
     if ($debug) {
-        Write-Host "$Global:timeGetProcess"
-        Write-Host "$Global:timeGetRawProcess"
-        Write-Host "$Global:timeAllRawProcess"
-        Write-Host "$Global:timeToUpdateTable"
+        
+        # WHY DO WE updProcs EVERY TIME???????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+
+        #Write-Host "$timeMain"
+        #Write-Host "$([int]$timeProcs.TotalMilliseconds) `tms for updProcs"
+            Write-Host "$([int]$Global:timeGetRawProcess.TotalMilliseconds) `tms to get allRawProcesses in updProcs"
+        #Write-Host "$([int]$timeCounters.TotalMilliseconds) `tms for updCounters"
+            Write-Host "$([int]$Global:timeAllRawProcess.TotalMilliseconds) `tms to get allRawProcesses in updCounters"
+        #Write-Host "$Global:timeToUpdateTable"
+        Write-Host "$qt `t steps"
     }
+    
+    $timeMain1 = [int]((Get-Date) - $timeMain0).TotalMilliseconds
+    if ($debug) {Write-Host "$timeMain1 `tms for main cycle"}
+    if ($timeMain1 -lt 999) {Start-Sleep -Milliseconds (999 - $timeMain1)}
+
     #looking for <Esc> or <R> or <Space> press
     if ($host.ui.RawUi.KeyAvailable) {
         $key=$host.ui.RawUI.ReadKey("NoEcho,IncludeKeyDown,IncludeKeyUp")
@@ -221,7 +221,6 @@ do {
                 <#Esc#> 27 {exit}
                 <#Space#> 32 {}
                 <#F1#> 112 {$infoCounter = 5} #to show help and peak cpu/mem time
-                <#F4#> 115 {$remCounter = 20} #to show abnormal counterResutls if any
             } #end switch
         }
     } #end if
