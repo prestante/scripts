@@ -7,7 +7,6 @@ $Global:totalMemory = (Get-WmiObject Win32_PhysicalMemory | Measure-Object -Prop
 Write-Host "Done" -fo Yellow -ba Black
 Update-TypeData -TypeName procListType -DefaultDisplayPropertySet 'Name','Id','Memory','CPU' -ea SilentlyContinue  # this is to display by default only props needed
 $peakDateCpu = $peakDateMem = Get-Date  # starting date to compare newer dates with it
-$Global:lastTable = @{'Key'=[PSCustomObject]@{ID=4294967296}}  # impossible ID for a comparison in updProcs to show difference for the keywords with no processes
 function GD {Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff'}
 function newLog {
     $Global:logFile = "C:\PS\logs\$(Get-Date -Format 'yyyy-MM-dd HH-mm-ss').csv"
@@ -45,14 +44,15 @@ function newProcs {
     } while ($agree -match 'n|N')
 }
 Function zero {
-    $Global:peakCpu = $Global:peakMem = $Global:lowCpu = $Global:lowMem = [decimal]0
+    [int]$table.'Peak'.CPU = $table.'Peak'.Memory = $table.'Low'.CPU = $table.'Low'.Memory = 0
     $Global:peakDateCpu = $Global:peakDateMem = $Global:lowDateCpu = $Global:lowDateMem = $null
     $Global:logging = $Global:loggingSum = $null
     $Global:startTime = Get-Date
     $Global:qt = [uint64]0
 }
 function updProcs {
-    if ((($Global:table.Values.Id | Sort-Object) -join '') -ne (($Global:lastTable.Values.Id | Sort-Object) -join '')) {  # old and new Table are different list has been changed
+    $Global:timeGetProcs = Measure-Command {$Global:procs = get-process | Where-Object {$_.Id -match $Global:ProcKeyWords -or $_.Name -match $Global:ProcKeyWords}}
+    if ((($Global:table.Values.Id | Sort-Object) -join '') -ne (($Global:procs.Id | Sort-Object) -join '')) {  # old and new Table are different list has been changed
         $Global:timeGetRawProcess = Measure-Command {
             $allRawProcesses = Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE NOT Name='_Total'"
         }
@@ -97,7 +97,6 @@ function updProcs {
         if ($Global:logging) {newLog}
         if ($Global:loggingSum) {newLogSum}
     }
-    $Global:lastTable = $Global:table
 }
 Function updCounters {
     $Global:timeAllRawProcess = Measure-Command {
@@ -108,41 +107,42 @@ Function updCounters {
     #$RawProcesses = @()  # I think we don't need this
     #foreach ($id in ($Global:Processes.IdProcess)) {$allRawProcesses | Where-Object {$_.IDProcess -eq $id} | ForEach-Object {$RawProcesses += $_}}  # the longest part
     $Global:table."Sum".Memory = $Global:table."Sum".CPU = $Global:table."Sum".DecimalCPU = [decimal]0
-    $Global:timeToUpdateTable0 = (Get-Date)
-    foreach ($id in $Global:table.Values.Id) {
-        if ($id) {
-            $currentRawProc = $allRawProcesses.where({$_.IDProcess -eq $id})
-            $currentTableProc = $Global:table."$id"  # for avoiding double $_ $_ in one line
-            $currentTableProc.Memory = [int]($currentRawProc.WorkingSet/1mb)
-            $currentTableProc.DecimalCPU = ($currentRawProc.PercentProcessorTime - $currentTableProc.LastPercentProcessorTime) / ($currentRawProc.Timestamp_Sys100NS - $currentTableProc.LastTimestamp_Sys100NS) / $Global:LogicalCPUs * 100
-            $currentTableProc.CPU = [int]$currentTableProc.DecimalCPU
-            $currentTableProc.LastWorkingSet = $currentRawProc.WorkingSet
-            $currentTableProc.LastPercentProcessorTime = $currentRawProc.PercentProcessorTime
-            $currentTableProc.LastTimestamp_Sys100NS = $currentRawProc.Timestamp_Sys100NS
-            $Global:table.'Sum'.Memory += $currentTableProc.Memory
-            $Global:table.'Sum'.DecimalCPU += $currentTableProc.DecimalCPU
+    $Global:timeToUpdateTable = Measure-Command {
+        foreach ($id in $Global:table.Values.Id) {
+            if ($id) {
+                $currentRawProc = $allRawProcesses.where({$_.IDProcess -eq $id})
+                $currentTableProc = $Global:table."$id"  # for avoiding double $_ $_ in one line
+                $currentTableProc.Memory = [int]($currentRawProc.WorkingSet/1mb)
+                $currentTableProc.DecimalCPU = ($currentRawProc.PercentProcessorTime - $currentTableProc.LastPercentProcessorTime) / ($currentRawProc.Timestamp_Sys100NS - $currentTableProc.LastTimestamp_Sys100NS) / $Global:LogicalCPUs * 100
+                $currentTableProc.CPU = [int]$currentTableProc.DecimalCPU
+                $currentTableProc.LastWorkingSet = $currentRawProc.WorkingSet
+                $currentTableProc.LastPercentProcessorTime = $currentRawProc.PercentProcessorTime
+                $currentTableProc.LastTimestamp_Sys100NS = $currentRawProc.Timestamp_Sys100NS
+                $Global:table.'Sum'.Memory += $currentTableProc.Memory
+                $Global:table.'Sum'.DecimalCPU += $currentTableProc.DecimalCPU
+            }
         }
+        $Global:table."Sum".CPU = [int]$Global:table.'Sum'.DecimalCPU
+        $Global:table.'TOTAL'.CPU = [int](100-[math]::Floor(($allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime - $Global:table.'TOTAL'.LastPercentProcessorTime) / ($allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS - $Global:table.'TOTAL'.LastTimestamp_Sys100NS) / $Global:LogicalCPUs * 100))
+        $Global:table.'TOTAL'.Memory = [int]($Global:totalMemory - (Get-WmiObject Win32_PerfRawData_PerfOS_Memory).AvailableBytes/1mb)
+        $Global:table.'TOTAL'.LastPercentProcessorTime = $allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime
+        $Global:table.'TOTAL'.LastTimestamp_Sys100NS = $allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS
     }
-    $Global:table."Sum".CPU = [int]$Global:table.'Sum'.DecimalCPU
-    $Global:table.'TOTAL'.CPU = [int](100-[math]::Floor(($allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime - $Global:table.'TOTAL'.LastPercentProcessorTime) / ($allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS - $Global:table.'TOTAL'.LastTimestamp_Sys100NS) / $Global:LogicalCPUs * 100))
-    $Global:table.'TOTAL'.Memory = [int]($Global:totalMemory - (Get-WmiObject Win32_PerfRawData_PerfOS_Memory).AvailableBytes/1mb)
-    $Global:table.'TOTAL'.LastPercentProcessorTime = $allRawProcesses.where({$_.Name -match 'Idle'}).PercentProcessorTime
-    $Global:table.'TOTAL'.LastTimestamp_Sys100NS = $allRawProcesses.where({$_.Name -match 'Idle'}).Timestamp_Sys100NS
-    $Global:timeToUpdateTable = "$([int]((Get-Date) - $Global:timeToUpdateTable0).TotalMilliseconds) `tms to update Table in updCounters"
 }
 
 newProcs
 zero
 $debug = 1
-updCounters
-#$Global:table.Values | select * | ft
+#updProcs
+#updCounters
+#$Global:table.Values | Select-Object -Property Name, Id, Memory, CPU, DecimalCPU | Format-Table -AutoSize
 
 do {
     $timeMain0 = (Get-Date)
-    $timeProcs = Measure-Command {
+    $Global:timeProcs = Measure-Command {
         updProcs
     }
-    $timeCounters = Measure-Command {
+    $Global:timeCounters = Measure-Command {
         updCounters
     }
 
@@ -191,16 +191,13 @@ do {
         $infoCounter--
     }
     if ($debug) {
-        
-        # WHY DO WE updProcs EVERY TIME???????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
-
-        #Write-Host "$timeMain"
-        #Write-Host "$([int]$timeProcs.TotalMilliseconds) `tms for updProcs"
-            Write-Host "$([int]$Global:timeGetRawProcess.TotalMilliseconds) `tms to get allRawProcesses in updProcs"
-        #Write-Host "$([int]$timeCounters.TotalMilliseconds) `tms for updCounters"
-            Write-Host "$([int]$Global:timeAllRawProcess.TotalMilliseconds) `tms to get allRawProcesses in updCounters"
-        #Write-Host "$Global:timeToUpdateTable"
-        Write-Host "$qt `t steps"
+        #Write-Host "$([int]$Global:timeProcs.TotalMilliseconds) `tms for updProcs"
+            Write-Host "$([int]$Global:timeGetProcs.TotalMilliseconds) `tms to get procs in updProcs"
+            #Write-Host "$([int]$Global:timeGetRawProcess.TotalMilliseconds) `tms to get allRawProcesses in updProcs"
+        #Write-Host "$([int]$Global:timeCounters.TotalMilliseconds) `tms for updCounters"
+            #Write-Host "$([int]$Global:timeAllRawProcess.TotalMilliseconds) `tms to get allRawProcesses in updCounters"
+            Write-Host "$([int]$Global:timeToUpdateTable.TotalMilliseconds) `tms to update Table in updCounters"
+        $Global:timeMain = $Global:timeProcs = $Global:timeGetProcs = $Global:timeGetRawProcess = $Global:timeCounters = $Global:timeAllRawProcess = $Global:timeToUpdateTable = 0
     }
     
     $timeMain1 = [int]((Get-Date) - $timeMain0).TotalMilliseconds
