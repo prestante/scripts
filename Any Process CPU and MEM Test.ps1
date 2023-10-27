@@ -1,24 +1,15 @@
-﻿Remove-Variable * -ea SilentlyContinue
-Write-Host "Reading CPU properties..." -fo Yellow -ba Black -NoNewline
-$Global:LogicalCPUs = (Get-WmiObject Win32_PerfRawData_PerfOS_Processor).Count - 1
-Write-Host "Done" -fo Yellow -ba Black
-Write-Host "Reading Memory properties..." -fo Yellow -ba Black -NoNewline
-$Global:totalMemory = (Get-WmiObject Win32_PhysicalMemory | Measure-Object -Property capacity -Sum).sum /1mb
-Write-Host "Done" -fo Yellow -ba Black
-Update-TypeData -TypeName procListType -DefaultDisplayPropertySet 'Name','Id','Memory','CPU' -ea SilentlyContinue  # this is to display by default only props needed
-$peakDateCpu = $peakDateMem = Get-Date  # starting date to compare newer dates with it
-function GD {Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff'}
+﻿function GD {Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff'}
 function newLog {
     $Global:logFile = "C:\PS\logs\$(Get-Date -Format 'yyyy-MM-dd HH-mm-ss').csv"
-    New-Item -Path $Global:logFile -Force | Out-Null
+    New-Item -Path $logFile -Force | Out-Null
     $string = "Time"
-    foreach ($id in $Global:table) {if ($id.Id) {$string += ",$($id.Name)($($id.Id))MEM"; $string += ",$($id.Name)($($id.Id))CPU"}}
+    $Global:table.Values | Where-Object {$_.Id -gt 0} | ForEach-Object {$string += ",$($_.Name)($($_.Id))MEM"; $string += ",$($_.Name)($($_.Id))CPU"}
     $string | Out-File $logFile -Append ascii
 }
 function newLogSum {
     $Global:logFileSum = "C:\PS\logs\$(Get-Date -Format 'yyyy-MM-dd HH-mm-ss').csv"
-    New-Item -Path $Global:logFileSum -Force| Out-Null
-    $string = "Time,SUM($($global:Processes.Count)procs)-MEM,SUM($($global:Processes.Count)procs)-CPU"
+    New-Item -Path $logFileSum -Force | Out-Null
+    $string = "Time,SUM-MEM,SUM-CPU,NumOfProcs"
     $string | Out-File $logFileSum -Append ascii
 }
 function newProcs {
@@ -27,13 +18,13 @@ function newProcs {
         Write-Host "Be careful with the Key Word. If some new process suitable for your Key Word will appear in the system later, it will be added to the list automatically." -f Yellow -b Black
         Write-Host "You can also type several keywords separated by comma. They all will be used at once to filter the processes list." -f Yellow -b Black
         Write-Host "Later you will be able to enter new Key Word by pressing <N>." -f Cyan -b Black
-        #$Global:EnteredWords = Read-Host "Enter Key Word(s)"
-        $Global:EnteredWords = 'edge'
+        $Global:EnteredWords = Read-Host "Enter Key Word(s)"
+        #$Global:EnteredWords = 'pwsh'
         $Global:ProcKeyWords = $Global:EnteredWords -join '|'
         updProcs
-        return 
-        if ($Global:Processes) {
-            $Global:Processes | Select-Object -Property Name,IdProcess -Unique | Format-Table
+        
+        if ($Global:table.Values | Where-Object {$_.Id -gt 0}) {
+            Get-Process -Id ($Global:table.Values.Id | Where-Object {$_ -gt 0}) -ea SilentlyContinue | Select-Object -Property Name,Id -Unique | Format-Table
             $agree = Read-Host "Are you OK with these processes? Default is 'yes' (y/n)"
         }
         else {
@@ -42,7 +33,7 @@ function newProcs {
         }
     } while ($agree -match 'n|N')
 }
-Function zero {
+function zero {
     $Global:peakCpu = $Global:peakMem = $Global:lowCpu = $Global:lowMem = [decimal]0
     $Global:peakDateCpu = $Global:peakDateMem = $Global:lowDateCpu = $Global:lowDateMem = $null
     $Global:logging = $Global:loggingSum = $null
@@ -50,11 +41,10 @@ Function zero {
     $Global:qt = [uint64]0
 }
 function updProcs {
-    $Global:timeGetProcs = Measure-Command {$Global:procs = get-process | Where-Object {$_.Id -match $Global:ProcKeyWords -or $_.Name -match $Global:ProcKeyWords}}
-    if ((($Global:table.Values.Id | Sort-Object) -join '') -ne (($Global:procs.Id | Sort-Object) -join '')) {  # old Table pricess IDs are not equal to newly found process IDs
+    $Global:timeGetProcs = Measure-Command {$Global:procs = Get-Process | Where-Object {$_.Id -match $Global:ProcKeyWords -or $_.Name -match "$Global:ProcKeyWords|Idle"}}  # getting processes by the key words
+    if ((($Global:table.Values.Id | Sort-Object) -join '') -ne (($Global:procs.Id | Sort-Object) -join '')) {  # old Table process IDs are not equal to newly found process IDs
         $Global:timeGetRawProcess = Measure-Command {
             $Global:table = [ordered]@{}
-            #$allRawProcesses | Where-Object {$_.Name -match $Global:ProcKeyWords} | ForEach-Object {
             Get-WmiObject -Query "SELECT Name,IDProcess,PercentProcessorTime,WorkingSet,Timestamp_Sys100NS FROM Win32_PerfRawData_PerfProc_Process WHERE NOT Name='_Total'" | Where-Object {$_.Name -match "$Global:ProcKeyWords|Idle"} | ForEach-Object {
                 if ($_.Name -ne 'Idle') {
                     $Global:table.Add([string]$_.IDProcess, [PSCustomObject]@{
@@ -72,11 +62,13 @@ function updProcs {
             }
             if (-not $Global:table.Values.Id) {$Global:table.Add($Global:ProcKeyWords, [PSCustomObject]@{  # when no processes found by key words
                 Name = "$Global:ProcKeyWords"
-                Id = "N/A"
+                Id = [int]0
                 Memory = [int]0
                 CPU = [int]0})
                 $Global:logging = $Global:loggingSum = $null
-            }
+            } else {if ($Global:logging) {newLog}; if ($Global:loggingSum) {newLogSum}}  # if there are some processes found by the key words, we may create new log files
+
+
             $Global:table.Add('Divider', [PSCustomObject]@{Name = '---------------'})
             $Global:table.Add('Sum', [pscustomobject]@{Name = 'Sum'; Memory = [int]0; CPU = [int]0; DecimalCPU = [decimal]0})
             $Global:table.Add('Space1', [PSCustomObject]@{})
@@ -92,13 +84,11 @@ function updProcs {
                 CPU = [int]0
                 LastPercentProcessorTime = $idleLastPercentProcessorTime
                 LastTimestamp_Sys100NS = $idleLastTimestamp_Sys100NS
-            })        
-            if ($Global:logging) {newLog}
-            if ($Global:loggingSum) {newLogSum}
+            })
         }
     }
 }
-Function updCounters {
+function updCounters {
     $Global:timeAllRawProcess = Measure-Command {
         $allRawProcesses = [ordered]@{}
         Get-WmiObject -Query "SELECT Name,IDProcess,PercentProcessorTime,WorkingSet,Timestamp_Sys100NS FROM Win32_PerfRawData_PerfProc_Process WHERE NOT Name='_Total'" | ForEach-Object {
@@ -134,12 +124,15 @@ Function updCounters {
     }
 }
 
+
+Write-Host "Gathering system information..." -fo Yellow -ba Black
+Remove-Variable * -ea SilentlyContinue
+$Global:LogicalCPUs = (Get-WmiObject Win32_PerfRawData_PerfOS_Processor).Count - 1
+$Global:totalMemory = (Get-WmiObject Win32_PhysicalMemory | Measure-Object -Property capacity -Sum).sum /1mb
+#Clear-Host
 newProcs
 zero
 $debug = 1
-#updProcs
-#updCounters
-#$Global:table.Values | Select-Object -Property Name, Id, Memory, CPU, DecimalCPU | Format-Table -AutoSize
 
 do {
     $timeMain0 = (Get-Date)
@@ -177,16 +170,16 @@ do {
     if ($logging) {
         Write-Host $logFile -f Cyan
         $string = "$(GD)"
-        foreach ($id in $table) {
-            if ($id.Id) {$string += ",$($id.Memory),$($id.CPU)"}
-            #"$id" 
+        $Global:table.Values | Where-Object {$_.Id -gt 0} | ForEach-Object {
+            $string += ",$($_.Memory),$($_.CPU)"
         }
         $string | Out-File $logFile -Append ascii
     }
-    if ($loggingSum) {
+    if ($loggingSum) {  # Time,SUM-MEM,SUM-CPU,NumOfProcs
         Write-Host $logFileSum -f Magenta
         $string = "$(GD)"
-        $table | Where-Object {$_.Name -eq 'Sum'} | ForEach-Object {$string += ",$($_.Memory),$($_.CPU)"}
+        $Global:table.'Sum' | ForEach-Object {$string += ",$($_.Memory),$($_.CPU),"}
+        $string += ($Global:table.Values | Where-Object {$_.Id -gt 0}).Count
         $string | Out-File $logFileSum -Append ascii
     }
     if ($infoCounter) {
