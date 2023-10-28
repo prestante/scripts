@@ -41,6 +41,8 @@ function zero {
     $Global:qt = [uint64]0
 }
 function updProcs {
+    # My idea is to only get wmi objects for processes found by get-process plus Idle for calculating TOTAL. It should be really fast. 
+    # Or to get wmi objects using a query with keywords divided by OR operator WHERE Name like '%Key1%' OR Name like '%Key2%'
     $Global:timeGetProcs = Measure-Command {$Global:procs = Get-Process | Where-Object {$_.Id -match $Global:ProcKeyWords -or $_.Name -match "$Global:ProcKeyWords|Idle"}}  # getting processes by the key words
     if ((($Global:table.Values.Id | Sort-Object) -join '') -ne (($Global:procs.Id | Sort-Object) -join '')) {  # old Table process IDs are not equal to newly found process IDs
         $Global:timeGetRawProcess = Measure-Command {
@@ -89,6 +91,7 @@ function updProcs {
     }
 }
 function updCounters {
+    # My idea is to only get wmi objects for processes found by get-process plus Idle for calculating TOTAL. It should be really fast.
     $Global:timeAllRawProcess = Measure-Command {
         $allRawProcesses = [ordered]@{}
         Get-WmiObject -Query "SELECT Name,IDProcess,PercentProcessorTime,WorkingSet,Timestamp_Sys100NS FROM Win32_PerfRawData_PerfProc_Process WHERE NOT Name='_Total'" | ForEach-Object {
