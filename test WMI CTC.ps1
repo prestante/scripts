@@ -1,70 +1,16 @@
-﻿#$username = 'wtldev.net\vadc'
-#$password = ConvertTo-SecureString $env:vpw -AsPlainText -Force
-#$credential = New-Object System.Management.Automation.PSCredential($username, $password)
-#$hostname = 'wtl-adc-ctc-01.wtldev.net'
+﻿$username = 'wtldev.net\vadc'
+$password = ConvertTo-SecureString $env:vpw -AsPlainText -Force
+$credential = New-Object System.Management.Automation.PSCredential($username, $password)
+$hostname = 'wtl-adc-ctc-01.wtldev.net'
 
-#Good WMIs:
-# Get Logical Processors Number (CTC - 35 ms, agalkovs - 65 ms)
-# (Get-WmiObject -Query "SELECT Name FROM Win32_PerfRawData_Counters_ProcessorInformation").Count - 2
-
-# Get Formatted PercentProcessorTime (or any process formatted property)
-# (Get-WmiObject -Query "SELECT * FROM Win32_PerfFormattedData_PerfProc_Process WHERE IDProcess like '1768'").PercentProcessorTime
-
-# Get Timestamp_Sys100NS
-# (Get-WmiObject -Query "SELECT Timestamp_Sys100NS FROM Win32_PerfRawData_PerfOS_System").Timestamp_Sys100NS
-
-# Get Available Memory (it can be substracted from total physical memory to get IN USE memory)
-# (Get-WmiObject Win32_PerfRawData_PerfOS_Memory).AvailableBytes
-
-#$table = Get-WmiObject -List | Where-Object {$_.Name -match 'processor'}
-#$table | ft -AutoSize
-#Get-WmiObject Win32_Process | Where-Object {$_.Name -match 'TaskMgr'} #| select -Property Name, PercentProcessorTime, ElapsedTime
-#Get-WmiObject Win32_PerfFormattedData_Counters_ProcessorInformation | select -First 100 | select -Property  Name, Description, PercentProcessorTime, PercentProcessorUtility
-
-function Get-RawResults {
-    param (
-        [Parameter(Mandatory=0)][string]$procName,
-        [Parameter(Mandatory=0)][int]$procID
-    )
-    if ($procName) {return (Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE Name like '$procName'").PercentProcessorTime}
-    elseif ($procID) {return (Get-WmiObject -Query "SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE IDProcess like $procID").PercentProcessorTime}
-    else {Write-Error "You should give at least one of [string]procName or [int]procID"}
-}
-function Get-FormattedResults {
-    param (
-        [Parameter(Mandatory=0)][string]$procName,
-        [Parameter(Mandatory=0)][int]$procID
-    )
-    if ($procName) {return (Get-Counter  -Counter "\Process($procName)\% processor time").CounterSamples.CookedValue}
-    elseif ($procID) {return (Get-WmiObject -Query "SELECT * FROM Win32_PerfFormattedData_PerfProc_Process WHERE IDProcess like $procID").PercentProcessorTime}
-    else {Write-Error "You should give at least one of [string]procName or [int]procID"}
-}
-function Get-TimeStamp {
-    return (Get-WmiObject -Query "SELECT Timestamp_Sys100NS FROM Win32_PerfRawData_PerfOS_System").Timestamp_Sys100NS
-}
-
-
-$procName = 'Idle'
-$procID = 0
-$cores = (Get-WmiObject -Query "SELECT Name FROM Win32_PerfRawData_Counters_ProcessorInformation").Count - 2
-
-$timestampPrev = Get-TimeStamp
-$rawResultPrev = Get-RawResults -procName $procName -procID $procID
-sleep 1  # for the first results to be more precise
-$formattedResult = 0
-$steps = 30
-for ($i = 0; $i -lt $steps; $i++) {
-    $time0 = Get-Date
-    $timestamp = (Get-WmiObject -Query "SELECT Timestamp_Sys100NS FROM Win32_PerfRawData_PerfOS_System").Timestamp_Sys100NS
-    $rawResult = Get-RawResults -procName $procName -procID $procID
-    #$formattedResult = Get-FormattedResults -procName $procName -procID $procID
-    $timeDiff = [int](((Get-Date) - $time0).TotalMilliseconds)
-    $resultRaw = [math]::Round((($rawResult - $rawResultPrev) / ($timestamp - $timestampPrev) / $cores * 100), 2)
-    $resultFormatted = [math]::Round(($formattedResult / $cores), 2)
-    $timestampPrev = $timestamp
-    $rawResultPrev = $rawResult
-    [pscustomobject]@{TimeDifference=$timeDiff; ResultFormatted=$resultFormatted; ResultRaw=$resultRaw; }
-    if ($timeDiff -lt 1000) {Start-Sleep -Milliseconds (1000 - $timeDiff)}
-}
-Write-Host ("Avg time diff: {0:n0} ms" -f ($avgTimeDiff/$steps))
-
+$time0 = Get-Date; $i = 0; $longs = 0; $longest = 0
+do {
+    $i++
+    $spent = [int](Measure-Command {
+        $processes = (Get-WmiObject -Query "SELECT Name,IDProcess,PercentProcessorTime,WorkingSet,Timestamp_Sys100NS FROM Win32_PerfRawData_PerfProc_Process WHERE NOT Name='_Total'" -ComputerName $hostname -Credential $credential).Count
+    }).TotalMilliseconds
+    $elapsed = [int]((Get-Date) - $time0).Totalseconds
+    if ($spent -gt 1000) {$longs++}
+    if ($longest -lt $spent) {$longest = $spent}
+    "CTC-Spent:{0}ms | Elapsed:{1}s | Iterations:{2} | Longs:{3} | Longest:{4}ms" -f $spent, $elapsed, $i, $longs, $longest
+} While (1) #((Read-Host) -ne 'n')

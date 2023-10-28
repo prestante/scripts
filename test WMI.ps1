@@ -7,5 +7,5 @@ do {
     $elapsed = [int]((Get-Date) - $time0).Totalseconds
     if ($spent -gt 1000) {$longs++}
     if ($longest -lt $spent) {$longest = $spent}
-    "Spent:{0:d6}ms | Elapsed:{1:d5}s | Iterations:{2:d6} | Longs:{3:d3} | Longest:{4:d6}" -f $spent, $elapsed, $i, $longs, $longest
+    "Spent:{0}ms | Elapsed:{1}s | Iterations:{2} | Longs:{3} | Longest:{4}" -f $spent, $elapsed, $i, $longs, $longest
 } While (1) #((Read-Host) -ne 'n')
