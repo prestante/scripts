@@ -132,10 +132,10 @@ Write-Host "Gathering system information..." -fo Yellow -ba Black
 Remove-Variable * -ea SilentlyContinue
 $Global:LogicalCPUs = (Get-WmiObject Win32_PerfRawData_PerfOS_Processor).Count - 1
 $Global:totalMemory = (Get-WmiObject Win32_PhysicalMemory | Measure-Object -Property capacity -Sum).sum /1mb
-#Clear-Host
+$debug = 1
+Clear-Host
 newProcs
 zero
-$debug = 1
 
 do {
     $timeMain0 = (Get-Date)
