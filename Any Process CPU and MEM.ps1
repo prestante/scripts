@@ -165,14 +165,14 @@ Function updCounters {
 newProcs
 zero
 
-do {   
-    $timeProcs = (Get-Date)
-    updProcs
-    $msgProcs = "$(((Get-Date) - $timeProcs).TotalMilliseconds) ms for updProcs"
-    $time1 = (Get-Date)
-    updCounters
-    #$msgProcs
-    #"$(((Get-Date) - $time1).TotalMilliseconds) ms for updCounters"
+do {
+    $debug = 1
+    $Global:timeProcs = Measure-Command {
+        updProcs
+    }
+    $Global:timeCounters = Measure-Command {
+        updCounters
+    }
 
     $sumCpu = $table.Where({$_.Name -eq 'Sum'}).CPU
     $sumMem = $table.Where({$_.Name -eq 'Sum'}).Memory
@@ -229,6 +229,16 @@ do {
         "table:
         $Global:remTable"
         $remCounter--
+    }
+    if ($debug) {
+        Write-Host "$([int]$Global:timeProcs.TotalMilliseconds) `tms for updProcs"
+            #Write-Host "$([int]$Global:timeGetProcs.TotalMilliseconds) `tms to get procs in updProcs"
+            #Write-Host "$([int]$Global:timeGetRawProcess.TotalMilliseconds) `tms to get allRawProcesses in updProcs"
+        Write-Host "$([int]$Global:timeCounters.TotalMilliseconds) `tms for updCounters"
+            #Write-Host "$([int]$Global:timeAllRawProcess.TotalMilliseconds) `tms to get allRawProcesses in updCounters"
+            #Write-Host "$([int]$Global:timeToUpdateTable.TotalMilliseconds) `tms to update Table in updCounters"
+            #Write-Host "$([int]$Global:timePeakLowAvg.TotalMilliseconds) `tms to update Table in main"
+        $Global:timeMain = $Global:timeProcs = $Global:timeGetProcs = $Global:timeGetRawProcess = $Global:timeCounters = $Global:timeAllRawProcess = $Global:timeToUpdateTable = $Global:timePeakLowAvg = 0
     }
     #looking for <Esc> or <R> or <Space> press
     if ($host.ui.RawUi.KeyAvailable) {
