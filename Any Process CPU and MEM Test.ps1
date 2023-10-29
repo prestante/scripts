@@ -80,7 +80,7 @@ function UpdProcs {
                 Memory = [int]0
                 CPU = [int]0})
                 $Global:logging = $Global:loggingSum = $null
-            } else {if ($Global:logging) {$Global:logging = $null}; if ($Global:loggingSum) {NewLogSum}}  # if there are some processes found by the key words, we may create new log file for sum logging and disable single logging
+            } elseif ($Global:logging) {$Global:logging = $null}  # if some processes found by the key words and the list of ID has changed, we should disable individual proc logging
 
             $Global:table.Add('Divider', [PSCustomObject]@{Name = '---------------'})
             $Global:table.Add('Sum', [pscustomobject]@{Name = 'Sum'; Memory = [int]0; CPU = [int]0; DecimalCPU = [decimal]0})
