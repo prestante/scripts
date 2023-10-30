@@ -9,7 +9,8 @@ function NewLog {
 function NewLogSum {
     $Global:logFileSum = "C:\PS\logs\$(Get-Date -Format 'yyyy-MM-dd HH-mm-ss').csv"
     New-Item -Path $logFileSum -Force | Out-Null
-    $string = "Time,SUM-MEM,SUM-CPU,NumOfProcs"
+    $procs = ($Global:ProcKeyWords).Split(',') -join ' | '
+    $string = "Time,MEM($procs),CPU($procs),NumOfProcs"
     $string | Out-File $logFileSum -Append ascii
 }
 function NewProcs {
