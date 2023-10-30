@@ -211,7 +211,7 @@ do {
     }
     
     $timeMain = [int]((Get-Date) - $timeMain0).TotalMilliseconds
-    if ($timeMain -lt 1000) {Start-Sleep -Milliseconds (1000 - $timeMain)} else {$longs++}  # if cycle takes less than a second, waiting up to second. If more - adding 1 to $longs
+    if ($timeMain -lt 999) {Start-Sleep -Milliseconds (999 - $timeMain)} elseif ($timeMain -gt 2000) {$longs++}  # if cycle takes less than a second, waiting up to second. If more than 2 - increasing $longs
     $maxSpent = if ($maxSpent -lt $timeMain) {$maxSpentTime = "{0:HH}:{0:mm}:{0:ss}" -f (Get-Date); [int]$timeMain} else {[int]$maxSpent}
     $timeAvgMain = [int](($timeAvgMain * $Global:qt + $timeMain) / ($Global:qt + 1))
     $Global:qt++
