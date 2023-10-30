@@ -63,7 +63,7 @@ function UpdProcs {
             Get-WmiObject -Query (ComposeQuery) | ForEach-Object {
                 if ($_.Name -ne 'Idle') {  # for all non-Idle objects, aka main table processes
                     $Global:table.Add([string]$_.IDProcess, [PSCustomObject]@{
-                        Name = [string]$_.Name  -replace '^Harris.Automation.ADC.Services.' -replace 'Host' -replace 'Service' -replace 'Validation' -replace '#\d+$'
+                        Name = [string]$_.Name  -replace '^Harris.Automation.ADC.Services.' -replace '^ADC' -replace 'Host' -replace 'Service' -replace 'Validation' -replace '#\d+$'
                         Id = [int]$_.IDProcess
                         Memory = [int]0
                         CPU = [int]0
