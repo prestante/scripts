@@ -208,8 +208,7 @@ do {
             Write-Host "$([int]$Global:timeAllRawProcess.TotalMilliseconds) `tms to Get-WmiObject in UpdCounters"
             Write-Host "$([int]$Global:timeToUpdateTable.TotalMilliseconds) `tms to update table in UpdCounters"
         Write-Host "Spent:$timeMain, AvgSpent:$timeAvgMain, MaxSpent:$maxSpent at $maxSpentTime, Longs:$longs"
-        $Global:timeGetRawProcess = $Global:timeAllRawProcess = $Global:timeToUpdateTable = 0
-    }
+    } $Global:timeGetRawProcess = $Global:timeAllRawProcess = $Global:timeToUpdateTable = 0
     
     $timeMain = [int]((Get-Date) - $timeMain0).TotalMilliseconds
     if ($timeMain -lt 999) {Start-Sleep -Milliseconds (999 - $timeMain)} elseif ($timeMain -gt 2000) {$longs++}  # if cycle takes less than a second, waiting up to second. If more than 2 - increasing $longs
