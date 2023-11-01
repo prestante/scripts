@@ -5,7 +5,7 @@ Write-Host "Please wait. Checking network path..." -BackgroundColor Black -Foreg
 if (!(Test-Path $buildsFolder)) {
     Write-Host "Cannot access $buildsFolder." -ba Black -fo Red
     if ($buildsFolder -match '\\\\fs') {
-        Write-Host "Trying to bypass DNS..." -ba Black -fo Yellow
+        Write-Host "Trying to bypass DNS..." -fo Yellow -ba Black
         $buildsFolder = $buildsFolder -replace '\\fs\\','\192.168.12.3\'
         if (!(Test-Path $buildsFolder)) {
             Write-Host "Cannot access $buildsFolder." -ba Black -fo Red
@@ -164,10 +164,15 @@ function install ($installers) {
     if ($installers.Keys) {
         Write-Host "Next installers were found:" -fo Yellow -ba Black
         $installers.values.Name
-        $name = $env:COMPUTERNAME -replace '^(.{4}).*$','$1'
-        Write-Host "Starting installation process..." -BackgroundColor Black -ForegroundColor Yellow
+        $name = if($env:COMPUTERNAME -match '^WTL-ADC-.*') {$env:COMPUTERNAME -replace '^WTL-ADC-'}  # short name taken from COMPUTERNAME to use as DS and clients launch name
+        elseif ($env:COMPUTERNAME -match 'ADCS') {'ADCS'}
+        elseif ($env:COMPUTERNAME -match 'GALK') {'GALK'}
+        elseif ($env:COMPUTERNAME -match '^WTL-') {$env:COMPUTERNAME -replace '^WTL-'}
+        else {$env:COMPUTERNAME}
+
+        Write-Host "Starting installation process..." -fo Yellow -ba Black
         $Global:refresh = 1
-    } else {Write-Host "There is nothing to install." -ba Black -fo Yellow} 
+    } else {Write-Host "There is nothing to install." -fo Yellow -ba Black}
 
     if ($installers.ACinstaller) {
         $existingACs = Get-ItemProperty HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object {$_.DisplayName -eq 'ADC Air Client'}
@@ -177,7 +182,7 @@ function install ($installers) {
         else {
             Write-Host "Installing $($installers.ACinstaller.Name)..." -fo Green -ba Black -NoNewline
             $InstallPath = 'C:\aclient\' + ($installers.ACinstaller.Name -replace '^.+_(.*)\.exe$','$1')
-            $Parameters = '\s \target"' + $InstallPath + '" \client"AC_' + $name + '"' + ' \server"' + $name + '" /NT'
+            $Parameters = '\s \target"' + $InstallPath + '" \client"' + $name + '_AC"' + ' \server"' + $name + '" /NT'
             Start-Process $installers.ACinstaller.FullName -ArgumentList $Parameters -NoNewWindow -Wait
             $lastACfolder = ($All | where {$_.displayname -match 'ADC.*air'} | sort -Property LastLaunch | select -Last 1).InstallLocation
             if ($lastACfolder) {try {Copy-Item ($lastACfolder | gci | where {$_.name -cmatch 'NETWORK.INI'}).FullName -Destination $InstallPath -Force}catch{}}
@@ -194,7 +199,7 @@ function install ($installers) {
         else {
             Write-Host "Installing $($installers.MCinstaller.Name)..." -fo Green -ba Black -NoNewline
             $InstallPath = 'C:\mclient\' + ($installers.MCinstaller.Name -replace '^.+_(.*)\.exe$','$1')
-            $Parameters = '\s \target"' + $InstallPath + '" \client"MC_' + $name + '"' + ' \server"' + $name + '" /NT'
+            $Parameters = '\s \target"' + $InstallPath + '" \client"' + $name + '_MC"' + ' \server"' + $name + '" /NT'
             Start-Process $installers.MCinstaller.FullName -ArgumentList $Parameters -NoNewWindow -Wait
             $lastMCfolder = ($All | where {$_.displayname -match 'ADC.*media'} | sort -Property LastLaunch | select -Last 1).InstallLocation
             if ($lastMCfolder) {try{Copy-Item ($lastMCfolder | gci | where {$_.name -cmatch 'NETWORK.INI'}).FullName -Destination $InstallPath -Force}catch{}}
@@ -228,7 +233,7 @@ function install ($installers) {
         else {
             Write-Host "Installing $($installers.CTinstaller.Name)..." -fo Green -ba Black -NoNewline
             $InstallPath = 'C:\config\' + ($installers.CTinstaller.Name -replace '^.+_(.*)\.exe$','$1')
-            $Parameters = '\s \target"' + $InstallPath + '" \client"CT_' + $name + '"'
+            $Parameters = '\s \target"' + $InstallPath + '" \client"' + $name + '_CT"'
             Start-Process $installers.CTinstaller.FullName -ArgumentList $Parameters -NoNewWindow -Wait
             $lastCTfolder = ($All | where {$_.displayname -match 'ADC.*config'} | sort -Property LastLaunch | select -Last 1).InstallLocation
             if ($lastCTfolder) {try{Copy-Item ($lastCTfolder | gci | where {$_.name -cmatch 'NETWORK.INI'}).FullName -Destination $InstallPath -Force}catch{}}
@@ -278,10 +283,10 @@ function delete($toDelete,$app) {
                 Get-ChildItem -LiteralPath 'C:\Users\Public\Desktop\' | where {$_.FullName -match $possibleName} |
                 Remove-Item -ea SilentlyContinue
             }
-            Write-Host "$($toDelete.count) apps were successfully deleted from the system." -ba Black -fo Yellow ; $Global:refresh = 1
+            Write-Host "$($toDelete.count) apps were successfully deleted from the system." -fo Yellow -ba Black ; $Global:refresh = 1
         } else {Write-Host "Nothing will be deleted since you didn't confirm your intention." -ba Black -fo Red}
     }
-    else {Write-Host "There is nothing to delete." -ba Black -fo Yellow}
+    else {Write-Host "There is nothing to delete." -fo Yellow -ba Black}
 } #end function delete
 function Title {Write-Host "<Space> - Show me all ADC v12 apps found
 <Esc> --- Exit
