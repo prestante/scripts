@@ -196,6 +196,7 @@ do {
         Write-Host "Press <N> - enter new keyword" -f 7
         Write-Host "Press <L> - CSV log (every process)" -f 7
         Write-Host "Press <M> - CSV log (sum of procs)" -f 7
+        Write-Host "Press <R> - Build a chart based on current CSV log" -f 7
         Write-Host "Press <F4> - Enable/Disable debug" -f 7
         $infoCounter--
     }
@@ -226,6 +227,7 @@ do {
                 <#L#> 76 {if ($Global:logging) {$Global:logging = 0} elseif ($Global:table.Values | Where-Object {$_.Id -gt 0}) {$Global:logging = 1; NewLog}}
                 <#M#> 77 {if ($Global:loggingSum) {$Global:loggingSum = 0} elseif ($Global:table.Values | Where-Object {$_.Id -gt 0}) {$Global:loggingSum = 1; NewLogSum}}
                 <#N#> 78 {Zero; NewProcs}
+                <#R#> 82 {$path = if ($Global:logging) {$Global:logFile} elseif ($Global:loggingSum) {$Global:logFileSum}; & ".\Chart Builder.ps1" -logfile $path -mode 'full'}
                 <#Enter#> 13 {}
                 <#Esc#> 27 {exit}
                 <#Space#> 32 {}
