@@ -2,7 +2,7 @@ param(
     [string]$logfile, # = "C:\PS\logs\18MB 2023-11-23 10-16-38.csv",
     [string]$mode = 'full'
 )
-$logfile = "C:\PS\logs\18MB 2023-11-23 10-16-38.csv"
+#$logfile = "C:\PS\logs\18MB 2023-11-23 10-16-38.csv"
 #$mode = 'full'
 
 
