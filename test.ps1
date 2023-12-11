@@ -5,3 +5,4 @@ $mode = 'last'
 & ".\Chart Builder.ps1" -logfile $logfile -mode $mode
 Read-Host
 
+#test from win10
