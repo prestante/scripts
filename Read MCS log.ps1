@@ -56,7 +56,7 @@ $kk=0
 do {
     $time1 = Get-Date
     if (!$pause) {
-        if ($defaultFolder) {$newFile = (Get-ChildItem $defaultFolder -filter NGCMCSwitcher*.log -ea SilentlyContinue | sort -Property LastWriteTime | select -Last 1).FullName}
+        if ($defaultFolder) {$newFile = (Get-ChildItem $defaultFolder -filter *NGCMCSwitcher*.log -ea SilentlyContinue | sort -Property LastWriteTime | select -Last 1).FullName}
         #if (!$newFile) {$newFile = Get-FileName $defaultFolder}
         if ((!$newfile) -and (!$waitForO) -and ($defaultFolder)) {Write-Host "There are no MCS log files in $(if ($init){"default"}else{"selected"}) folder '$defaultFolder'. Press <O> to select another folder." -f red -b Black; $waitForO = 1; $file = $null; $init = 0; Title}
         if (($newFile) -and ($newFile -ne $file)) {
