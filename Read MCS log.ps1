@@ -85,8 +85,12 @@ do {
                     #$rightRegex = '(?s).*?<MessageID>\s*(?<id>.*?)\s*<\/MessageID>.*?<CommandID>\s*(?<command>.*?)\s*<\/CommandID>(?=.*?<TargetState>\s*(?<target>.*?)\s*<\/TargetState>)?(?=.*?<Category>\s*(?<category>.*?)\s*<\/Category>)?(?=.*?<InstanceID>\s*(?<instance>.*?)\s*<\/InstanceID>)?(?=.*?<SourceID>\s*(?<source>.*?)\s*<\/SourceID>)?'
                     $id = $xml.MCSMessage.MCSRequest.MessageID -replace '^\s+|\s+$'
                     $command = $xml.MCSMessage.MCSRequest.Command.CommandID -replace '^\s+|\s+$'
-                    $categories = $xml.GetElementsByTagName('Category').'#text' -replace '^\s+|\s+$'                    $target = $xml.GetElementsByTagName('TargetState').'#text' -replace '^\s+|\s+$'                    $instance = if (($xml.GetElementsByTagName('InstanceID').'#text').count -eq 1) {$xml.GetElementsByTagName('InstanceID').'#text' -replace '^\s+|\s+$'} else {''}
-                    $source = $xml.GetElementsByTagName('SourceID').'#text' -replace '^\s+|\s+$'                    #Write-Text "$time ==> $command - $(if($target){"TargetState:$target "})$(if($categories){"Category:$($categories -join ',') "})$(if($source){"SourceID:$source "})$(if($showSystem){" ($id)"})" -b black -f green                    #if ($command -eq 'MCSStartTransition') {$body} #debug
+                    $categories = $xml.GetElementsByTagName('Category').'#text' -replace '^\s+|\s+$'
+                    $target = $xml.GetElementsByTagName('TargetState').'#text' -replace '^\s+|\s+$'
+                    $instance = if (($xml.GetElementsByTagName('InstanceID').'#text').count -eq 1) {$xml.GetElementsByTagName('InstanceID').'#text' -replace '^\s+|\s+$'} else {''}
+                    $source = $xml.GetElementsByTagName('SourceID').'#text' -replace '^\s+|\s+$'
+                    #Write-Text "$time ==> $command - $(if($target){"TargetState:$target "})$(if($categories){"Category:$($categories -join ',') "})$(if($source){"SourceID:$source "})$(if($showSystem){" ($id)"})" -b black -f green
+                    #if ($command -eq 'MCSStartTransition') {$body} #debug
                     switch ($command) {
                         'MCSGetStatus' {$systemRequest=1; $f = 9; $b = 0}
                         'MCSSetTransition' {$systemRequest=0; $f = 11; $b = 9}
@@ -109,7 +113,8 @@ do {
                     #$leftRegex = '(?s).*?<MessageID>\s*(?<id>.*?)\s*<\/MessageID>.*?<CommandID>\s*(?<command>.*?)\s*<\/CommandID>.*?<RequestStatus>(?<status>.*?)<\/RequestStatus>'
                     $id = $xml.MCSMessage.MCSResponse.MessageID -replace '^\s+|\s+$'
                     $command = $xml.MCSMessage.MCSResponse.CommandID -replace '^\s+|\s+$'
-                    $status = $xml.MCSMessage.MCSResponse.RequestStatus -replace '^\s+|\s+$'                    #if ($command -eq 'MCSStartTransition') {$body} #debug
+                    $status = $xml.MCSMessage.MCSResponse.RequestStatus -replace '^\s+|\s+$'
+                    #if ($command -eq 'MCSStartTransition') {$body} #debug
                     if ($status -eq 'OK') {$f = 2 ; $b = 0} else {$f = 12 ; $b = 0}
                     if ($command -eq 'MCSGetStatus') {$systemResponse=1} else {$systemResponse=0}
                     if ((($showSystem) -or !($systemResponse)) -and ($id -eq $waitID)) {
