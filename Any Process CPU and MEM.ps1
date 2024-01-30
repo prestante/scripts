@@ -227,7 +227,13 @@ do {
                 <#L#> 76 {if ($Global:logging) {$Global:logging = 0} elseif ($Global:table.Values | Where-Object {$_.Id -gt 0}) {$Global:logging = 1; NewLog}}
                 <#M#> 77 {if ($Global:loggingSum) {$Global:loggingSum = 0} elseif ($Global:table.Values | Where-Object {$_.Id -gt 0}) {$Global:loggingSum = 1; NewLogSum}}
                 <#N#> 78 {Zero; NewProcs}
-                <#R#> 82 {$path = if ($Global:logging) {$Global:logFile} elseif ($Global:loggingSum) {$Global:logFileSum}; & ".\Chart Builder.ps1" -logfile $path -mode 'full'}
+                <#R#> 82 {
+                    $path = if ($Global:logging) {$Global:logFile} 
+                            elseif ($Global:loggingSum) {$Global:logFileSum}
+                            else {(Get-ChildItem "C:\PS\logs" -Filter "*.csv" -ea SilentlyContinue | Sort-Object LastWriteTime | Select-Object -Last 1).FullName}
+                    if ($path) {& ".\Chart Builder.ps1" -logfile $path -mode 'full'}
+                    else {Write-Host "There is no LogFile"; Start-Sleep -Milliseconds 500}
+                }
                 <#Enter#> 13 {}
                 <#Esc#> 27 {exit}
                 <#Space#> 32 {}
