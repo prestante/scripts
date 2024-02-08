@@ -19,13 +19,13 @@ function NewProcs {
         Write-Host "Be careful with the Key Word. If some new process suitable for your Key Word will appear in the system later, it will be added to the list automatically." -f Yellow -b Black
         Write-Host "You can also type several Key Words separated by comma. They all will be used at once to filter the processes list." -f Yellow -b Black
         Write-Host "Later you will be able to enter a new Key Word after pressing <N>." -f Cyan -b Black
-        #$Global:ProcKeyWords = Read-Host "Enter Key Word(s)"
-        $Global:ProcKeyWords = 'task'
+        $Global:ProcKeyWords = Read-Host "Enter Key Word(s)"
+        #$Global:ProcKeyWords = 'task'
         UpdProcs
         
         if ($Global:table.Values | Where-Object {$_.Id -gt 0}) {
             Get-Process -Id ($Global:table.Values.Id | Where-Object {$_ -gt 0}) -ea SilentlyContinue | Select-Object -Property Name,Id -Unique | Format-Table
-            #$agree = Read-Host "Are you OK with these processes? Default is 'yes' (y/n)"
+            $agree = Read-Host "Are you OK with these processes? Default is 'yes' (y/n)"
         }
         else {
             Write-Host "There are no processes found with key word(s) '$ProcKeyWords'." -f Red -b Black
