@@ -1,5 +1,5 @@
 #$CTC = @('WTL-ADC-CTC-01.WTLDEV.NET', 'WTL-ADC-CTC-02.WTLDEV.NET', 'WTL-ADC-CTC-03.WTLDEV.NET', 'WTL-ADC-CTC-04.WTLDEV.NET', 'WTL-ADC-CTC-05.WTLDEV.NET', 'WTL-ADC-CTC-06.WTLDEV.NET', 'WTL-ADC-CTC-07.WTLDEV.NET', 'WTL-ADC-CTC-08.WTLDEV.NET', 'WTL-ADC-CTC-09.WTLDEV.NET', 'WTL-ADC-CTC-10.WTLDEV.NET', 'WTL-ADC-CTC-11.WTLDEV.NET', 'WTL-ADC-CTC-12.WTLDEV.NET', 'WTL-ADC-CTC-13.WTLDEV.NET', 'WTL-ADC-CTC-14.WTLDEV.NET', 'WTL-ADC-CTC-15.WTLDEV.NET', 'WTL-ADC-CTC-16.WTLDEV.NET', 'WTL-ADC-CTC-17.WTLDEV.NET', 'WTL-ADC-CTC-18.WTLDEV.NET', 'WTL-ADC-CTC-19.WTLDEV.NET', 'WTL-ADC-CTC-20.WTLDEV.NET', 'WTL-ADC-CTC-21.WTLDEV.NET', 'WTL-ADC-CTC-22.WTLDEV.NET', 'WTL-ADC-CTC-23.WTLDEV.NET', 'WTL-ADC-CTC-24.WTLDEV.NET')
-$CTC = @('WTL-ADC-CTC-03.WTLDEV.NET')
+$CTC = @('WTL-ADC-CTC-01.WTLDEV.NET')
 
 $Password = Read-Host "Enter password for vadc"
 $Creds = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $Password -Force))
@@ -9,6 +9,9 @@ $Creds = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(Con
 Invoke-Command -ComputerName $CTC -Credential $Creds -ArgumentList $Password {
     param ($Password)
     $report = "$(HOSTNAME.EXE):"
+
+    $report
+    return
 
     # Copy \\wtlnas1 and \\wtlnas5 shortcuts to desktop
     $Creds = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $Password -Force))

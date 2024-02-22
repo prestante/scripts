@@ -1,8 +1,17 @@
-﻿$logfile = "C:\PS\logs\18MB 2023-11-23 10-16-38.csv"
-$mode = 'last'
-#Get-Location
-#return
-& ".\Chart Builder.ps1" -logfile $logfile -mode $mode
-Read-Host
+﻿$ComputerName = 'wtl-adc-ctc-04'
+$Creds = [System.Management.Automation.PSCredential]::new('local\imagineLocal',(ConvertTo-SecureString -AsPlainText '!!' -Force))
+#$Creds = [System.Management.Automation.PSCredential]::new('local\imagineLocal')
 
-#test from win10 1
+Invoke-Command -ComputerName $ComputerName -Credential $Creds {
+    "$(HOSTNAME.EXE)"
+    Add-Computer -WorkgroupName "CTC"
+    Restart-Computer -Force
+}
+
+Start-Sleep 20
+
+Invoke-Command -ComputerName $ComputerName -Credential $Creds {
+    "$(HOSTNAME.EXE)"
+    Add-Computer -WorkgroupName "CTC"
+    Restart-Computer -Force
+}
