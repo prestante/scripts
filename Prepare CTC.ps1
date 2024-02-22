@@ -28,7 +28,15 @@ Invoke-Command -ComputerName $CTC -Credential $Creds -ArgumentList $Password {
     Remove-PSDrive "Z"
 
     # Remove Run Warnings for \\wtlnas1 and \\wtlnas5
-    @('wtlnas1.wtldev.net','wtlnas5.wtldev.net') | ForEach-Object {
+    $domains = @('wtlnas1','wtlnas5')
+    $registryPath = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\EscDomains"
+    $name = "*"
+    $value = 1
+    foreach ($domain in $domains) {
+        if (-not (Test-Path "$registryPath\$domain")) {$item = "$registryPath\$domain"; New-Item -Path $item -Force | Out-Null; $report += "`n`tNew Registry Item:`t$item"}
+        if (-not (Get-Item "$registryPath\$domain" -ea SilentlyContinue).Property -contains $name) {$item = "$registryPath\$domain"; New-ItemProperty -Path $item -Name $name -Value $value -PropertyType DWORD -Force | Out-Null; $report += "`n`tNew Registry Property:`t$item\$name=$value"}
+    }
+    <#@('wtlnas1.wtldev.net','wtlnas5.wtldev.net') | ForEach-Object {
         $domain = $_ -replace '.*\.(\w+\.\w+$)','$1'
         $place = $_ -replace '(.*)\.\w+\.\w+$','$1'
         $registryPaths = @(
@@ -43,7 +51,8 @@ Invoke-Command -ComputerName $CTC -Credential $Creds -ArgumentList $Password {
             if (!(Test-Path "$registryPath\$domain\$place")) {$item = "$registryPath\$domain\$place"; New-Item -Path $item -Force | Out-Null; $report += "`n`tNew Registry Item:`t$item"}
             if ((Get-Item "$registryPath\$domain\$place").property -notcontains $name) {$item = "$registryPath\$domain\$place"; New-ItemProperty -Path $item -Name $name -Value $value -PropertyType DWORD -Force | Out-Null; $report += "`n`tNew Registry Property:`t$item\$name=$value"}
         }
-    }
+    }#>
+
     Write-Host "$report" -f (Get-Random (1,2,3,5,6,9,10,11,13,14))
     Restart-Computer -Force
 }
