@@ -1,5 +1,5 @@
 ﻿$ComputerName = 'wtl-adc-ctc-04'
-$Creds = [System.Management.Automation.PSCredential]::new('local\imagineLocal',(ConvertTo-SecureString -AsPlainText '!!' -Force))
+$Creds = [System.Management.Automation.PSCredential]::new('local\imagineLocal',(ConvertTo-SecureString -AsPlainText '!!!!!!' -Force))
 #$Creds = [System.Management.Automation.PSCredential]::new('local\imagineLocal')
 
 Invoke-Command -ComputerName $ComputerName -Credential $Creds {
