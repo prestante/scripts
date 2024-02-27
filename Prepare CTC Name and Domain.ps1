@@ -1,49 +1,54 @@
 $ComputerNames = @(
-    [PSCustomObject]@{HostName="wtl-adc-ctc-01"; IPaddress="10.9.80.59"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-02"; IPaddress="10.9.80.95"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-03"; IPaddress="10.9.80.96"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-04"; IPaddress="10.9.80.97"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-05"; IPaddress="10.9.80.98"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-06"; IPaddress="10.9.80.99"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-07"; IPaddress="10.9.80.100"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-08"; IPaddress="10.9.80.101"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-09"; IPaddress="10.9.80.102"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-10"; IPaddress="10.9.80.106"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-11"; IPaddress="10.9.80.107"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-12"; IPaddress="10.9.80.108"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-13"; IPaddress="10.9.80.109"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-14"; IPaddress="10.9.80.110"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-15"; IPaddress="10.9.80.112"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-16"; IPaddress="10.9.80.113"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-17"; IPaddress="10.9.80.114"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-18"; IPaddress="10.9.80.115"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-19"; IPaddress="10.9.80.116"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-20"; IPaddress="10.9.80.117"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-21"; IPaddress="10.9.80.118"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-22"; IPaddress="10.9.80.119"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-23"; IPaddress="10.9.80.120"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-24"; IPaddress="10.9.80.121"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-25"; IPaddress="10.9.80.122"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-26"; IPaddress="10.9.80.123"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-27"; IPaddress="10.9.80.124"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-28"; IPaddress="10.9.80.125"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-29"; IPaddress="10.9.80.126"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-30"; IPaddress="10.9.80.127"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-31"; IPaddress="10.9.80.128"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-32"; IPaddress="10.9.80.129"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-33"; IPaddress="10.9.80.130"}
-    [PSCustomObject]@{HostName="wtl-adc-ctc-34"; IPaddress="10.9.80.131"}
+    #<#
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-01"; IPaddress="10.9.80.59"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-02"; IPaddress="10.9.80.95"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-03"; IPaddress="10.9.80.96"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-04"; IPaddress="10.9.80.97"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-05"; IPaddress="10.9.80.98"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-06"; IPaddress="10.9.80.99"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-07"; IPaddress="10.9.80.100"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-08"; IPaddress="10.9.80.101"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-09"; IPaddress="10.9.80.102"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-10"; IPaddress="10.9.80.106"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-11"; IPaddress="10.9.80.107"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-12"; IPaddress="10.9.80.108"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-13"; IPaddress="10.9.80.109"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-14"; IPaddress="10.9.80.110"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-15"; IPaddress="10.9.80.112"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-16"; IPaddress="10.9.80.113"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-17"; IPaddress="10.9.80.114"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-18"; IPaddress="10.9.80.115"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-19"; IPaddress="10.9.80.116"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-20"; IPaddress="10.9.80.117"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-21"; IPaddress="10.9.80.118"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-22"; IPaddress="10.9.80.119"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-23"; IPaddress="10.9.80.120"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-24"; IPaddress="10.9.80.121"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-25"; IPaddress="10.9.80.122"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-26"; IPaddress="10.9.80.123"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-27"; IPaddress="10.9.80.124"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-28"; IPaddress="10.9.80.125"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-29"; IPaddress="10.9.80.126"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-30"; IPaddress="10.9.80.127"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-31"; IPaddress="10.9.80.128"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-32"; IPaddress="10.9.80.129"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-33"; IPaddress="10.9.80.130"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-34"; IPaddress="10.9.80.131"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-35"; IPaddress="10.9.80.133"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-36"; IPaddress="10.9.80.134"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-37"; IPaddress="10.9.80.135"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-38"; IPaddress="10.9.80.136"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-39"; IPaddress="10.9.80.137"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-40"; IPaddress="10.9.80.138"}
+    #>
 )
-  #[PSCustomObject]@{HostName="wtl-adc-ctc-ref"; IPaddress="10.9.80.50"}
-$CredsLocal = [System.Management.Automation.PSCredential]::new('local\imagineLocal',(ConvertTo-SecureString -AsPlainText 'imagineL0cal' -Force))
-$DesiredDomain = 'CTC'
+  #[PSCustomObject]@{HostName="WTL-ADC-CTC-REF"; IPaddress="10.9.80.50"}
+$CredsLocal = [System.Management.Automation.PSCredential]::new('local\imagineLocal',(ConvertTo-SecureString -AsPlainText $env:imgLocPW -Force))
+$DesiredDomain = 'WTL'
 
-$IPsToDomain = @(Invoke-Command -ComputerName $ComputerNames.HostName -Credential $CredsLocal -ArgumentList $ComputerNames,$DesiredDomain {
+$IPsToDomain = @(Invoke-Command -ComputerName $ComputerNames.IPaddress -Credential $CredsLocal -ArgumentList $ComputerNames, $DesiredDomain {
     param ($ComputerNames, $DesiredDomain)
     $HostName = HOSTNAME.EXE
-
-    (Get-WmiObject Win32_ComputerSystem)
-    return
 
     $IPaddress = Get-NetIPAddress | Where-Object {$_.AddressState -eq "Preferred" -and $_.ValidLifetime -lt "24:00:00"} | Select-Object -ExpandProperty IPAddress
     $Domain = (Get-WmiObject Win32_ComputerSystem).Domain
@@ -52,9 +57,9 @@ $IPsToDomain = @(Invoke-Command -ComputerName $ComputerNames.HostName -Credentia
     #$DesiredName = 'WTL-ADC-CTC-REF'
     $report = "$DesiredName ($IPaddress) HostName: $HostName, Domain: $Domain"
 
-    if ($HostName -eq $DesiredName -and $Domain -match $DesiredDomain) { $report += "`n`t The computer already has a desired name '$DesiredName' and is part of the desired domain '$DesiredDomain'" }
-    elseif ($Domain -notmatch $DesiredDomain) { $report += "`n`t The computer domain should be changed to '$DesiredDomain'. If you also need to change the computer name, run the script once more after the domain is changed"; $NeedDomainChanges = 1 }
-    elseif ($PartOfDomain -and $HostName -ne $DesiredName) { $report += "`n`t The computer name should be changed to '$DesiredName' but first we have to exit the domain. Run the script once more after the domain is changed"; $NeedDomainChanges = 1 }
+    if ($HostName -ceq $DesiredName -and $Domain -match $DesiredDomain) { $report += "`t The computer already has a desired name '$DesiredName' and is part of the desired domain '$DesiredDomain'" }
+    elseif ($HostName -ceq $DesiredName -and $Domain -notmatch $DesiredDomain) { $report += "`n`t The computer already has a desired name, but domain should be changed to '$DesiredDomain'"; $NeedDomainChanges = 1 }
+    elseif ($PartOfDomain -and $HostName -cne $DesiredName) { $report += "`n`t The computer name should be changed to '$DesiredName' but first we have to exit the domain. Run the script once more after the domain is changed"; $NeedDomainChanges = 1 }
     else {  # not in the domain and want to change name
         try {
             Rename-Computer -NewName $DesiredName -Force -Restart -ErrorAction Stop
@@ -74,7 +79,9 @@ $IPsToDomain = @(Invoke-Command -ComputerName $ComputerNames.HostName -Credentia
 
 if ($IPsToDomain) {
     Write-Host '--------------------------------------------------------------'
-    Write-Host "Waiting 15 seconds before changing the domain to '$DesiredDomain'" -NoNewline
+    Write-Host "Changing the domain of the next IPs to '$DesiredDomain':"
+    Write-Host $IPsToDomain
+    Write-Host 'Waiting 15 seconds' -NoNewline
     For ($i = 0; $i -lt 15; $i++) {Start-Sleep 1; Write-Host "." -NoNewline}; Write-Host '.'
 
     Invoke-Command -ComputerName $IPsToDomain -Credential $CredsLocal -ArgumentList $DesiredDomain {
@@ -82,7 +89,7 @@ if ($IPsToDomain) {
         $IPaddress = Get-NetIPAddress | Where-Object {$_.AddressState -eq "Preferred" -and $_.ValidLifetime -lt "24:00:00"} | Select-Object -ExpandProperty IPAddress
         $Domain = (Get-WmiObject Win32_ComputerSystem).Domain
         $report = "$(HOSTNAME.EXE) ($IPaddress)"
-        $CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText '!Trade33Wait!' -Force))
+        $CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
         if ($Domain -notmatch $DesiredDomain -and $DesiredDomain -match 'wtl') {  # if we are not in desired domain/group and desire to wtl, then joining it
             Add-Computer -DomainName 'wtldev.net' -Credential $CredsDomain -Force -Restart
             $report += "`n`t Joining the WTLDEV.NET domain" }
