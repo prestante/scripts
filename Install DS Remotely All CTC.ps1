@@ -1,9 +1,13 @@
 ﻿#$CTC = @('WTL-HP3B8-VDS1.WTLDEV.NET','WTL-HP3B8-VDS2.WTLDEV.NET','WTL-HP3B8-VDS3.WTLDEV.NET','WTL-HP3B8-VDS4.WTLDEV.NET','WTL-HP3B8-VDS5.WTLDEV.NET','WTL-HP3B8-VDS6.WTLDEV.NET','WTL-HP3B8-VDS7.WTLDEV.NET','WTL-HP3B8-VDS8.WTLDEV.NET','WTL-HP3B8-VDS9.WTLDEV.NET','WTL-HP3B8-VDS10.WTLDEV.NET','WTL-HP3B9-VDS1.WTLDEV.NET','WTL-HP3B9-VDS2.WTLDEV.NET','WTL-HP3B9-VDS3.WTLDEV.NET','WTL-HP3B9-VDS4.WTLDEV.NET','WTL-HP3B9-VDS5.WTLDEV.NET','WTL-HP3B9-VDS6.WTLDEV.NET','WTL-HP3B9-VDS7.WTLDEV.NET','WTL-HP3B9-VDS8.WTLDEV.NET','WTL-HP3B9-VDS9.WTLDEV.NET','WTL-HP3B9-VDS10.WTLDEV.NET')
-#$CTC = @('adc-ctc01.tecomgroup.ru','adc-ctc02.tecomgroup.ru','adc-ctc03.tecomgroup.ru','adc-ctc04.tecomgroup.ru','adc-ctc05.tecomgroup.ru','adc-ctc06.tecomgroup.ru','adc-ctc07.tecomgroup.ru','adc-ctc08.tecomgroup.ru','adc-ctc09.tecomgroup.ru','adc-ctc10.tecomgroup.ru','adc-ctc11.tecomgroup.ru','adc-ctc12.tecomgroup.ru','adc-ctc13.tecomgroup.ru','adc-ctc14.tecomgroup.ru','adc-ctc15.tecomgroup.ru','adc-ctc16.tecomgroup.ru','adc-ctc17.tecomgroup.ru','adc-ctc18.tecomgroup.ru','adc-ctc19.tecomgroup.ru','adc-ctc20.tecomgroup.ru','adc-ctc21.tecomgroup.ru','adc-ctc22.tecomgroup.ru','adc-ctc23.tecomgroup.ru','adc-ctc24.tecomgroup.ru')
-$CTC = @('adc-ctc01.tecomgroup.ru','adc-ctc02.tecomgroup.ru')
+#$CTC = @('WTL-ADC-CTC-01.wtldev.net', 'WTL-ADC-CTC-02.wtldev.net', 'WTL-ADC-CTC-03.wtldev.net', 'WTL-ADC-CTC-04.wtldev.net', 'WTL-ADC-CTC-05.wtldev.net', 'WTL-ADC-CTC-06.wtldev.net', 'WTL-ADC-CTC-07.wtldev.net', 'WTL-ADC-CTC-08.wtldev.net', 'WTL-ADC-CTC-09.wtldev.net', 'WTL-ADC-CTC-10.wtldev.net', 'WTL-ADC-CTC-11.wtldev.net', 'WTL-ADC-CTC-12.wtldev.net', 'WTL-ADC-CTC-13.wtldev.net', 'WTL-ADC-CTC-14.wtldev.net', 'WTL-ADC-CTC-15.wtldev.net', 'WTL-ADC-CTC-16.wtldev.net', 'WTL-ADC-CTC-17.wtldev.net', 'WTL-ADC-CTC-18.wtldev.net', 'WTL-ADC-CTC-19.wtldev.net', 'WTL-ADC-CTC-20.wtldev.net', 'WTL-ADC-CTC-21.wtldev.net', 'WTL-ADC-CTC-22.wtldev.net', 'WTL-ADC-CTC-23.wtldev.net', 'WTL-ADC-CTC-24.wtldev.net', 'WTL-ADC-CTC-25.wtldev.net', 'WTL-ADC-CTC-26.wtldev.net', 'WTL-ADC-CTC-27.wtldev.net', 'WTL-ADC-CTC-28.wtldev.net', 'WTL-ADC-CTC-29.wtldev.net', 'WTL-ADC-CTC-30.wtldev.net', 'WTL-ADC-CTC-31.wtldev.net', 'WTL-ADC-CTC-32.wtldev.net', 'WTL-ADC-CTC-33.wtldev.net', 'WTL-ADC-CTC-34.wtldev.net', 'WTL-ADC-CTC-35.wtldev.net', 'WTL-ADC-CTC-36.wtldev.net', 'WTL-ADC-CTC-37.wtldev.net', 'WTL-ADC-CTC-38.wtldev.net', 'WTL-ADC-CTC-39.wtldev.net', 'WTL-ADC-CTC-40.wtldev.net')
+$CTC = @('WTL-ADC-CTC-01.wtldev.net', 'WTL-ADC-CTC-02.wtldev.net', 'WTL-ADC-CTC-03.wtldev.net', 'WTL-ADC-CTC-04.wtldev.net', 'WTL-ADC-CTC-05.wtldev.net', 'WTL-ADC-CTC-06.wtldev.net', 'WTL-ADC-CTC-07.wtldev.net', 'WTL-ADC-CTC-08.wtldev.net', 'WTL-ADC-CTC-09.wtldev.net')
+$CTC = @('WTL-ADC-CTC-01.wtldev.net', 'WTL-ADC-CTC-02.wtldev.net')
 
+$CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
+$BuildsFolder = '\\wtlnas5.wtldev.net\Public\Releases\ADC\ADC1000\QATEST'
+    
 #prompts for DS versions and copying INIs
-$InstallAppVersion = '12.29.12'
+$InstallAppVersion = '12.29.19'
 #$InstallAppVersion = Read-Host "Install what DS version?"
 
 If ($InstallAppVersion -notmatch '^\d+\.\d+\.\d+') {
@@ -11,31 +15,31 @@ If ($InstallAppVersion -notmatch '^\d+\.\d+\.\d+') {
     return
 }
 
-If ((Read-Host "Copy INIs from previous DS version?(y/n)") -match '[yY]') {
+<#If ((Read-Host "Copy INIs from previous DS version?(y/n)") -match '[yY]') {
     $PrevAppVersion = Read-Host "Previous installed DS version?"
     If ($PrevAppVersion -notmatch '^\d+\.\d+\.\d+') {
         echo 'Wrong DS Version'
         return
     }
 
-} else {$PrevAppVersion = ''}
+} else {$PrevAppVersion = ''}#>
 
-#this was done to pass the password for agalkovs username into Invoke-Command
-#$pass = ConvertTo-SecureString -String '01000000d08c9ddf0115d1118c7a00c04fc297eb010000007c87033a3f02f847a3f4d44805ffa55b0000000002000000000003660000c000000010000000aa4bb3e813a3281af0fc4c14f844adfd0000000004800000a000000010000000872646a5dfd994f49500eb831518deb820000000381f88ed6d9764b2a0a5575455b39b3d90f97981cd7338bb504279ab9bf77f87140000005782fcc9c5411d027b5b0d1ae7463094e75774f5'
-
-#credentials for operating CTC PCs
-$Creds = [System.Management.Automation.PSCredential]::new('local\Administrator',(ConvertTo-SecureString -AsPlainText 'Tecom_1!' -Force))
 write-host "Please wait.."
 
-Invoke-Command -ComputerName $CTC -ArgumentList $InstallAppVersion, $PrevAppVersion, $pass -Credential $Creds -ScriptBlock {
-    param ( $InstallAppVersion, $PrevAppVersion, $pass )
-    #$creds = [System.Management.Automation.PSCredential]::new('agalkovs',$pass)
-    $fsCreds = [System.Management.Automation.PSCredential]::new('TECOM\adcqauser',(ConvertTo-SecureString -AsPlainText 'Tecom_123!' -Force))
-
-    # attaching network drive with builds from \\fs
-    #New-PSDrive -Name S -PSProvider FileSystem -Root \\wtl-hp3b7-plc1.wtldev.net\Shared -Credential $creds | out-null
-    New-PSDrive -Name S -PSProvider FileSystem -Root \\192.168.12.3\Shares\Engineering\ADC\QA\Builds -Credential $fsCreds | out-null
+Invoke-Command -ComputerName $CTC -ArgumentList $InstallAppVersion, $PrevAppVersion, $CredsDomain, $BuildsFolder -Credential $CredsDomain {
+    param ( $InstallAppVersion, $PrevAppVersion, $CredsDomain, $BuildsFolder )
     
+    $HostName = HOSTNAME.EXE
+    $IPaddress = Get-NetIPAddress | Where-Object {$_.AddressState -eq "Preferred" -and $_.ValidLifetime -lt "24:00:00"} | Select-Object -ExpandProperty IPAddress
+    $Domain = (Get-WmiObject Win32_ComputerSystem).Domain
+    $PartOfDomain = (Get-WmiObject Win32_ComputerSystem).PartOfDomain
+    $report = "$HostName ($IPaddress)"
+    
+    # attaching network drive with builds from \\wtlnas5
+    New-PSDrive -Name S -PSProvider FileSystem -Root $BuildsFolder -Credential $CredsDomain | Out-Null
+    
+    return
+
     # this block was done for wtldev VMs
     <# checking and installing vc_redist.x86.exe
     if (!(Get-ItemProperty HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | where {$_.displayname -like "Microsoft Visual C++ * Redistributable*"} | Select-Object DisplayName, DisplayVersion)) {
@@ -110,7 +114,10 @@ Invoke-Command -ComputerName $CTC -ArgumentList $InstallAppVersion, $PrevAppVers
         }
     }
     else {Write-Host "$($env:COMPUTERNAME) - DS $InstallAppVersion already exists." -fo Yellow -ba Black ; return}
-    Write-Host "Done" -fo Green -ba Black
+
+    Remove-PSDrive -Name S
+    $report += "`n`t Done"
+    Write-Host "$report" -f (Get-Random (1,2,3,5,6,9,10,11,13,14))
 }
 
 
