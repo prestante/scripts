@@ -50,7 +50,7 @@ Invoke-Command -ComputerName $CTC -Credential $CredsDomain {
         }
     }#>
 
-    Write-Host "$report" -f (Get-Random (1,2,3,5,6,9,10,11,13,14))
+    Write-Host "$report" -f ( 1, 2, 3, 5, 6, 9, 10, 11, 13, 14 )[ ( $HostName.Split('-')[-1] ) % 10 ]  # Choosing the color as a remainder of dividing the name number part by 10 (number of color variants)
     Restart-Computer -Force
 }
 
