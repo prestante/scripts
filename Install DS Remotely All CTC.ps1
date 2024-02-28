@@ -31,15 +31,11 @@ Invoke-Command -ComputerName $CTC -ArgumentList $InstallAppVersion, $PrevAppVers
     
     $HostName = HOSTNAME.EXE
     $IPaddress = Get-NetIPAddress | Where-Object {$_.AddressState -eq "Preferred" -and $_.ValidLifetime -lt "24:00:00"} | Select-Object -ExpandProperty IPAddress
-    $Domain = (Get-WmiObject Win32_ComputerSystem).Domain
-    $PartOfDomain = (Get-WmiObject Win32_ComputerSystem).PartOfDomain
     $report = "$HostName ($IPaddress)"
     
     # attaching network drive with builds from \\wtlnas5
     New-PSDrive -Name S -PSProvider FileSystem -Root $BuildsFolder -Credential $CredsDomain | Out-Null
     
-    return
-
     # this block was done for wtldev VMs
     <# checking and installing vc_redist.x86.exe
     if (!(Get-ItemProperty HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | where {$_.displayname -like "Microsoft Visual C++ * Redistributable*"} | Select-Object DisplayName, DisplayVersion)) {
@@ -47,7 +43,7 @@ Invoke-Command -ComputerName $CTC -ArgumentList $InstallAppVersion, $PrevAppVers
         #Write-Host "$($env:COMPUTERNAME): Installing Microsoft Visual C++ Redistributable x86..."
         #Start-Process -FilePath 'C:\temp\vc_redist.x86.exe' -ArgumentList "/Q" -Wait #-Credential $creds
         Write-Host "$($env:COMPUTERNAME): Microsoft Visual C++ Redistributable x86 is missing"
-    }
+    }#>
     
     # preparing device server installator and params
     Copy-Item (gci 'S:\' | where { $_.Name -match '^SERVER_QATEST' -and $_.Name -match $InstallAppVersion} | select -First 1).FullName 'C:\temp'
@@ -83,37 +79,7 @@ Invoke-Command -ComputerName $CTC -ArgumentList $InstallAppVersion, $PrevAppVers
         $shortcut.save()
 
         Write-Host "$($env:COMPUTERNAME) - DS $InstallAppVersion already exists." -fo Yellow -ba Black
-    }#>
-
-    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
-    #setting parameters
-    $Folder = ((gci ('S:\ADC_v12\' + $InstallAppVersion.Substring(0,5)) | where {$_.Name -match $InstallAppVersion} | select -First 1).FullName) + '\Standard'
-    $File = gci $Folder | where { $_.Name -match '^SERVER_QATEST' } | select -First 1
-    $InstallPath = 'C:\server\' + $File.Name -replace 'SERVER_QATEST_(.*)\.exe','$1'
-
-    #making DS name in shortcut like CTC02 or CTC12
-    $DSname = $env:COMPUTERNAME -replace 'ADC-'
-        
-    #$Parameters = '\s \target"' + $InstallPath + '" \server"' + $DSname + '"'    #silent install
-    $Parameters = "\s \target`"$InstallPath`" \server`"$DSname`""
-        
-    if (!(Test-Path $file.FullName)) {Write-Host "$($env:COMPUTERNAME) - File not found: $($File.FullName)" -fo Red -ba Black ; return}
-
-    # checking and installing DS
-    if (!(Get-ItemProperty HKLM:SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | where {$_.displayname -match 'ADC.*Server' -and $_.displayversion -match $InstallAppVersion})) {
-        Write-Host "$($env:COMPUTERNAME): Installing $($File.VersionInfo.ProductName)..." -NoNewline
-
-        #executing DS installer with parameters
-        Start-Process $File.FullName -ArgumentList $Parameters -Wait
-        
-        #Copy old INIs to new DS folder
-        If ($PrevAppVersion) {
-            $OldInstallPath = (gci 'C:\server\' | where {$_.Name -match $PrevAppVersion} | select -First 1).FullName
-            Copy-Item ($OldInstallPath | gci | where {$_.name -cmatch 'INI'}).FullName -Destination $InstallPath -Force
-        }
     }
-    else {Write-Host "$($env:COMPUTERNAME) - DS $InstallAppVersion already exists." -fo Yellow -ba Black ; return}
 
     Remove-PSDrive -Name S
     $report += "`n`t Done"

@@ -1,0 +1,6 @@
+{
+    "powershell.integratedConsole.focusConsoleOnExecute": false,
+    "terminal.integrated.commandsToSkipShell": [
+        "\"powershell.integratedConsole.focusConsoleOnExecute\": false"
+    ]
+}
