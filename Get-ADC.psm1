@@ -1,5 +1,4 @@
-function get-ADC ($message) {
-    Write-Host "$message" -BackgroundColor Black -ForegroundColor Yellow
+function get-ADC {
     #get all software installed in system
     [string[]]$regKeyApplications = 'HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall','HKLM:SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall'
     [psobject[]]$regKeyApplication = @()
