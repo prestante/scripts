@@ -1,4 +1,6 @@
-Measure-Command { $lines = 0 ; Get-Content $logfile -ReadCount 1000 | % { $lines += $_.count } ; $lines}
-#Measure-Command { $lines = 0 ; (Get-Content $logfile).Length }
-#Measure-Command { (Get-Content $logfile -ReadCount 1000 | Measure-Object -Line).Lines }
-#Measure-Command { [System.IO.File]::ReadLines($logfile) | Measure-Object -Line | Select-Object -ExpandProperty Lines }
+#. ".\test.ps1"
+Get-Module -ListAvailable "\\wtlnas1\Public\ADC\PS\scripts\test.ps1" -SkipEditionCheck | Import-Module
+#Import-Module -Name "\\wtlnas1\Public\ADC\PS\scripts\test.ps1"
+funa -arg 'qwe123'
+Write-Host "The code from test2.ps1"
+Remove-Variable * -ErrorAction SilentlyContinue
