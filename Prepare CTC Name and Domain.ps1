@@ -32,14 +32,6 @@ $ComputerNames = @(
     [PSCustomObject]@{HostName="WTL-ADC-CTC-30"; IPaddress="10.9.80.127"}
     [PSCustomObject]@{HostName="WTL-ADC-CTC-31"; IPaddress="10.9.80.128"}
     [PSCustomObject]@{HostName="WTL-ADC-CTC-32"; IPaddress="10.9.80.129"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-33"; IPaddress="10.9.80.130"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-34"; IPaddress="10.9.80.131"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-35"; IPaddress="10.9.80.133"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-36"; IPaddress="10.9.80.134"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-37"; IPaddress="10.9.80.135"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-38"; IPaddress="10.9.80.136"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-39"; IPaddress="10.9.80.137"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-40"; IPaddress="10.9.80.138"}
     #>
 )
   #[PSCustomObject]@{HostName="WTL-ADC-CTC-REF"; IPaddress="10.9.80.50"}
