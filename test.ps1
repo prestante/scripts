@@ -1,6 +1,6 @@
 ﻿#$CTC = @('WTL-ADC-CTC-01.wtldev.net', 'WTL-ADC-CTC-02.wtldev.net', 'WTL-ADC-CTC-03.wtldev.net', 'WTL-ADC-CTC-04.wtldev.net', 'WTL-ADC-CTC-05.wtldev.net', 'WTL-ADC-CTC-06.wtldev.net', 'WTL-ADC-CTC-07.wtldev.net', 'WTL-ADC-CTC-08.wtldev.net', 'WTL-ADC-CTC-09.wtldev.net', 'WTL-ADC-CTC-10.wtldev.net', 'WTL-ADC-CTC-11.wtldev.net', 'WTL-ADC-CTC-12.wtldev.net', 'WTL-ADC-CTC-13.wtldev.net', 'WTL-ADC-CTC-14.wtldev.net', 'WTL-ADC-CTC-15.wtldev.net', 'WTL-ADC-CTC-16.wtldev.net', 'WTL-ADC-CTC-17.wtldev.net', 'WTL-ADC-CTC-18.wtldev.net', 'WTL-ADC-CTC-19.wtldev.net', 'WTL-ADC-CTC-20.wtldev.net', 'WTL-ADC-CTC-21.wtldev.net', 'WTL-ADC-CTC-22.wtldev.net', 'WTL-ADC-CTC-23.wtldev.net', 'WTL-ADC-CTC-24.wtldev.net', 'WTL-ADC-CTC-25.wtldev.net', 'WTL-ADC-CTC-26.wtldev.net', 'WTL-ADC-CTC-27.wtldev.net', 'WTL-ADC-CTC-28.wtldev.net', 'WTL-ADC-CTC-29.wtldev.net', 'WTL-ADC-CTC-30.wtldev.net', 'WTL-ADC-CTC-31.wtldev.net', 'WTL-ADC-CTC-32.wtldev.net')
 $CTC = @('WTL-ADC-CTC-01.wtldev.net')
-$InstallAppVersion = '5.9.10.0'
+$InstallAppVersion = '5.9.10.2'
 
 $CredsLocal = [System.Management.Automation.PSCredential]::new('local\imagineLocal',(ConvertTo-SecureString -AsPlainText $env:imgLocPW -Force))
 $CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
@@ -14,52 +14,54 @@ Invoke-Command -ComputerName $CTC -ArgumentList $InstallAppVersion, $CredsLocal,
     $HostName = "$(HOSTNAME.EXE)"
     $IPaddress = Get-NetIPAddress | Where-Object {$_.AddressState -eq "Preferred" -and $_.ValidLifetime -lt "24:00:00"} | Select-Object -ExpandProperty IPAddress
     $Report = "$HostName ($IPaddress)"
-    
-    # check which ADC Services are already installed, if any
-    $InstalledApp = (Get-ItemProperty HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object {$_.displayname -like "ADC Services"})
-
-    if ( -not $InstalledApp ) {  # there is no ADC Services installed, so install them
-
-        # prepare PS drives for builds and PS shared folders
-        $Report += "`n`t Creating PSDrives:"
+    function Set-Drive {
+        $Global:Report += "`n`t Creating PSDrives:"
         try {
-            $Report += "`n`t`t '$BuildsFolder'"
-            New-PSDrive -Name B -PSProvider FileSystem -Root $BuildsFolder -Credential $CredsDomain -ErrorAction Stop | Out-Null
-            $Report += " - Done"
+            $Global:Report += "`n`t`t '$BuildsFolder'"
+            New-PSDrive -Name B -PSProvider FileSystem -Root $BuildsFolder -Credential $CredsDomain -Scope Global -ErrorAction Stop | Out-Null
+            $Global:Report += " - Done"
         }
-        catch { $Report += "`n`t`t Error: $_" }
+        catch { $Global:Report += "`n`t`t Error: $_" }
         try {
-            $Report += "`n`t`t '$wtlnas1PSFolder'"
-            New-PSDrive -Name P -PSProvider FileSystem -Root $wtlnas1PSFolder -Credential $CredsDomain -ErrorAction Stop | Out-Null
-            $Report += " - Done"
+            $Global:Report += "`n`t`t '$wtlnas1PSFolder'"
+            New-PSDrive -Name P -PSProvider FileSystem -Root $wtlnas1PSFolder -Credential $CredsDomain -Scope Global -ErrorAction Stop | Out-Null
+            $Global:Report += " - Done"
         }
-        catch { $Report += "`n`t`t Error: $_" }
-
-        # search for and copy the ADC Services installer
+        catch { $Global:Report += "`n`t`t Error: $_" }
+    }
+    function Copy-Installer {
         try { if (-not (Get-ChildItem B: -ErrorAction Stop | Where-Object { $_.Name -match $InstallAppVersion }).Count) { Throw }
             $DistantFolderPath = ( Get-ChildItem B: -ErrorAction Stop | Where-Object { $_.Name -match $InstallAppVersion } | Select-Object -First 1 ).FullName
             try { $DistantFilePath = (Get-ChildItem $DistantFolderPath -ErrorAction Stop | Where-Object { $_.Name -match '^ADCServicesSetup.*exe' } | Select-Object -First 1).FullName
                 try { Test-Path $DistantFilePath -ErrorAction Stop | Out-Null
                     try { New-Item "C:\temp" -ItemType Directory -Force -ErrorAction SilentlyContinue | Out-Null
-                        try { $Report += "`n`t Copy the installer into C:\temp"
-                            $File = Copy-Item $DistantFilePath "C:\temp\" -PassThru -ErrorAction Stop
-                        } catch { $Report += "`n`t Error while copying the installer to 'C:\temp': $_" }
-                    } catch { $Report += "`n`t Error while creating C:\temp directory: $_" }
-                } catch { $Report += "`n`t Error while looking for the desired installer in '$DistantFolderPath': $_" }
-            } catch { $Report += "`n`t Error while getting files from '$DistantFolderPath': $_" }
-        } catch { $Report += "`n`t Error while searching for the appropriate folder for version $InstallAppVersion" }
+                        try { $Global:Report += "`n`t Copy the installer into C:\temp"
+                            $Global:File = Copy-Item $DistantFilePath "C:\temp\" -PassThru -ErrorAction Stop
+                        } catch { $Global:Report += "`n`t Error while copying the installer to 'C:\temp': $_" }
+                    } catch { $Global:Report += "`n`t Error while creating C:\temp directory: $_" }
+                } catch { $Global:Report += "`n`t Error while looking for the desired installer in '$DistantFolderPath': $_" }
+            } catch { $Global:Report += "`n`t Error while getting files from '$DistantFolderPath': $_" }
+        } catch { $Global:Report += "`n`t Error while searching for the appropriate folder for version $InstallAppVersion" }
+    }
+
+
+    # check which ADC Services are already installed, if any
+    $InstalledApp = (Get-ItemProperty HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object {$_.displayname -like "ADC Services"})
+
+    if ( -not $InstalledApp ) {  # there is no ADC Services installed, so install them
+        Set-Drive  # prepare PS drives for builds and PS shared folders
+        Copy-Installer  # search for and copy the ADC Services installer
+        
+        $Report += "`n`t Returning so far"
+        Write-Host "$Report" -f ( 1, 2, 3, 5, 6, 9, 10, 11, 13, 14 )[ ( $HostName.Split('-')[-1] ) % 10 ]  # Choose the color as a remainder of dividing the name number part by 10 (number of color variants)
+        return
 
         # prepare params and start the process
         $DBName = 'wtl-hpx-325-m01' ; $DBUser = 'sa' ; $DBPassword = 'ImagineDB1'
         $Parameters = "/s, /v`"/qn`" /v`"IS_SQLSERVER_SERVER=$DBName`" /v`"IS_SQLSERVER_USERNAME=$DBUser`" /v`"IS_SQLSERVER_PASSWORD=$DBPassword`" /v`"INSTALLLEVEL=101`" /v`"/l*v C:\ADCServicesInstaller.log`" /v`"REBOOT=ReallySuppress`""
-        #$Parameters = "/x /s, /v`"/qn`" /v`"DELETEDB=No`" /v`"REBOOT=ReallySuppress`"" # Delete Services
         $Report += "`n`t Installing $($File.VersionInfo.ProductName) $($File.VersionInfo.ProductVersion)..."
         Start-Process $File.FullName -ArgumentList $Parameters -Wait
         Start-Sleep 5
-
-        $Report += "`n`t Returning so far"
-        Write-Host "$Report" -f ( 1, 2, 3, 5, 6, 9, 10, 11, 13, 14 )[ ( $HostName.Split('-')[-1] ) % 10 ]  # Choose the color as a remainder of dividing the name number part by 10 (number of color variants)
-        return
 
         # copy ref files to C:\temp       TRY TO CREATE CONFIG FILES READING AND CHANGING THEM ON THE FLY
         Get-ChildItem 'P:\resources\CTC Services Refs' | Where-Object {$_.Name -match '.*CTCRef.xml'} | ForEach-Object { Copy-Item $_.FullName 'C:\temp' -Force }
