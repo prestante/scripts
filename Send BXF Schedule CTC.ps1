@@ -1,17 +1,19 @@
-﻿$CTC = @('192.168.13.170','192.168.13.171','192.168.13.172','192.168.13.173','192.168.13.174','192.168.13.175','192.168.13.176','192.168.13.177','192.168.13.178','192.168.13.179','192.168.13.180','192.168.13.181','192.168.13.182','192.168.13.138','192.168.13.139','192.168.13.140','192.168.13.141','192.168.13.142','192.168.13.143','192.168.13.145','192.168.13.161','192.168.13.168','192.168.13.232','192.168.13.191')#$CTC = @('192.168.13.170')$XmlFile = 'C:\PS\xml\3877.xml'#Setting configuration and Getting list of ListNames from all Integration Services config files
+﻿$CTC = @('WTL-ADC-CTC-01.wtldev.net', 'WTL-ADC-CTC-02.wtldev.net', 'WTL-ADC-CTC-03.wtldev.net', 'WTL-ADC-CTC-04.wtldev.net', 'WTL-ADC-CTC-05.wtldev.net', 'WTL-ADC-CTC-06.wtldev.net', 'WTL-ADC-CTC-07.wtldev.net', 'WTL-ADC-CTC-08.wtldev.net', 'WTL-ADC-CTC-09.wtldev.net', 'WTL-ADC-CTC-10.wtldev.net', 'WTL-ADC-CTC-11.wtldev.net', 'WTL-ADC-CTC-12.wtldev.net', 'WTL-ADC-CTC-13.wtldev.net', 'WTL-ADC-CTC-14.wtldev.net', 'WTL-ADC-CTC-15.wtldev.net', 'WTL-ADC-CTC-16.wtldev.net', 'WTL-ADC-CTC-17.wtldev.net', 'WTL-ADC-CTC-18.wtldev.net', 'WTL-ADC-CTC-19.wtldev.net', 'WTL-ADC-CTC-20.wtldev.net', 'WTL-ADC-CTC-21.wtldev.net', 'WTL-ADC-CTC-22.wtldev.net', 'WTL-ADC-CTC-23.wtldev.net', 'WTL-ADC-CTC-24.wtldev.net', 'WTL-ADC-CTC-25.wtldev.net', 'WTL-ADC-CTC-26.wtldev.net', 'WTL-ADC-CTC-27.wtldev.net', 'WTL-ADC-CTC-28.wtldev.net', 'WTL-ADC-CTC-29.wtldev.net', 'WTL-ADC-CTC-30.wtldev.net', 'WTL-ADC-CTC-31.wtldev.net', 'WTL-ADC-CTC-32.wtldev.net')
+
+$CredsLocal = [System.Management.Automation.PSCredential]::new('local\imagineLocal',(ConvertTo-SecureString -AsPlainText $env:imgLocPW -Force))
+$CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
+
+$XmlFile = '\\wtlnas1\public\ADC\PS\resources\xml\3877.xml'
+#$XmlFile = '\\wtlnas1\public\ADC\PS\resources\xml\Add.Pri.and.Sec.Template.One.xml'
+
+#Setting configuration and Getting list of ListNames from all Integration Services config files
 $Url = @(foreach ($CTCip in $CTC) {'http://' + $CTCip + ':1985/SendMessage?destination_name=traffic'})
-
-$Login = 'local\Administrator'
-$Password = 'Tecom_1!'
-$Pass = ConvertTo-SecureString -AsPlainText $Password -Force
-$Creds = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $Login, $Pass
-
-$servers = 1
+$servers = 2
 $SSN = 0 #SSN is Starting Server Number. 0 means starting from first $CTC pc.
 $lists = 1
 $interval = 40 #OAT interval in seconds between Lists
 $pause = 2 #pause in seconds between sending bxf messages
-$add = 1 #set add to 1 if you want just to add schedule to already running lists. set to 0 if you want to restart DS and add new schedule starting with AO event
+$add = 0 #set add to 1 if you want just to add schedule to already running lists. set to 0 if you want to restart DS and add new schedule starting with AO event
 
 #$addTime = (Get-Date 14:30) #at which time to send schedule
 $addTime = (Get-Date).AddSeconds(5) #at which time to send schedule
@@ -24,7 +26,7 @@ function GD {Get-Date -Format 'yyyy-MM-dd HH:mm:ss - '}
 function Prepare {
     Write-Host "$(GD)Preparing CTC environment (30 seconds)..." -fo yellow -ba black
     $PSSessionOption.IdleTimeout = New-TimeSpan -days 24 -Seconds 0
-    Invoke-Command -ComputerName ($CTC[$SSN..($SSN+$Servers-1)]) -InDisconnectedSession -ArgumentList $add -Credential $creds {
+    Invoke-Command -ComputerName ($CTC[$SSN..($SSN+$Servers-1)]) -InDisconnectedSession -ArgumentList $add -Credential $CredsDomain {
         param ($add)
         if ($add -eq 0) {
             Stop-Process  -name ADC1000NT -Force ; Start-Sleep 1
@@ -74,8 +76,34 @@ function Prepare {
     Start-Sleep 30
 }
 function Send {
-    if ($add -eq 0) {$Mode = 'Fixed'} else {$Mode = 'Follow'} #Should be Fixed (AO) or Follow (A)    $begin = (Get-Date).AddSeconds(60+($servers*$lists*($pause+2)))
-    for ($([int]$SN=$SSN ; $i=0) ; $SN -lt ($SSN+$servers) ; $SN++) {        for ($([int]$LN=0) ; $LN -lt $lists ; $LN++) {            #getting content for RestMethod from XmlFile replacing Dates, Lists, Start Times etc.            $Start = "{0:HH}:{0:mm}:{0:ss};00"  -f $begin.AddSeconds($i*$interval)            $List = "CTC{0:d2}_{1:d2}" -f ($SN+1), ($LN+1)            $Content = Get-Content $XmlFile -Raw | % {$_ -replace '#DATE',$Date -replace '#LIST',$List -replace '#TIME',$Time -replace '#START',$Start -replace '#MODE',$Mode}                    if ($add) {Write-Host ("$(GD)Adding schedule for $List -> {0} - " -f ($Url[$SN] -replace '^.*\/(\d+\.\d+\.\d+\.\d+\:\d+).*$','$1')) -NoNewline}            else {Write-Host ("$(GD)Loading schedule for $List with OAT {1} -> {0} - " -f ($Url[$SN] -replace '^.*\/(\d+\.\d+\.\d+\.\d+\:\d+).*$','$1'),$Start) -NoNewline}                    #sending xml message to rest adapter            try {Write-Host (Invoke-RestMethod -Method 'post' -Uri $Url[$SN] -Body $Content) -NoNewline; Write-Host "Success" -b Black -f Green}            catch {                Write-Host "Fail" -b Black -f Red                Write-Host "$(GD)Failed to send bxf for $List. Retry in 20 seconds - " -b Black -f Yellow -NoNewline                sleep 20                try {Write-Host (Invoke-RestMethod -Method 'post' -Uri $Url[$SN] -Body $Content) -NoNewline ; Write-Host "Success" -b Black -f Green}                catch {Write-Host "Fail`n$(GD)Failed to send schedule for $List" -b Black -f Red}            }                        Start-Sleep -Seconds $pause            #$Content | Out-File 'C:\PS\Galk.xml'            $i++        }    }
+    if ($add -eq 0) {$Mode = 'Fixed'} else {$Mode = 'Follow'} #Should be Fixed (AO) or Follow (A)
+    $begin = (Get-Date).AddSeconds(60+($servers*$lists*($pause+2)))
+    for ($([int]$SN=$SSN ; $i=0) ; $SN -lt ($SSN+$servers) ; $SN++) {
+        for ($([int]$LN=0) ; $LN -lt $lists ; $LN++) {
+
+            #getting content for RestMethod from XmlFile replacing Dates, Lists, Start Times etc.
+            $Start = "{0:HH}:{0:mm}:{0:ss};00"  -f $begin.AddSeconds($i*$interval)
+            $List = "CTC-{0:d2}:{1:d2}" -f ($SN+1), ($LN+1)
+            $Content = Get-Content $XmlFile -Raw | % {$_ -replace '#DATE',$Date -replace '#LIST',$List -replace '#TIME',$Time -replace '#START',$Start -replace '#MODE',$Mode}
+        
+            if ($add) {Write-Host ("$(GD)Adding schedule for $List -> {0} - " -f ($Url[$SN] -replace '^.*\/(\d+\.\d+\.\d+\.\d+\:\d+).*$','$1')) -NoNewline}
+            else {Write-Host ("$(GD)Loading schedule for $List with OAT {1} -> {0} - " -f ($Url[$SN] -replace '^.*\/(\d+\.\d+\.\d+\.\d+\:\d+).*$','$1'),$Start) -NoNewline}
+        
+            #sending xml message to rest adapter
+            try {Write-Host (Invoke-RestMethod -Method 'post' -Uri $Url[$SN] -Body $Content) -NoNewline; Write-Host "Success" -b Black -f Green}
+            catch {
+                Write-Host "Fail" -b Black -f Red
+                Write-Host "$(GD)Failed to send bxf for $List. Retry in 20 seconds - " -b Black -f Yellow -NoNewline
+                sleep 20
+                try {Write-Host (Invoke-RestMethod -Method 'post' -Uri $Url[$SN] -Body $Content) -NoNewline ; Write-Host "Success" -b Black -f Green}
+                catch {Write-Host "Fail`n$(GD)Failed to send schedule for $List" -b Black -f Red}
+            }
+            
+            Start-Sleep -Seconds $pause
+            #$Content | Out-File 'C:\PS\Galk.xml'
+            $i++
+        }
+    }
 }
 function Wait {
     Write-Host "$(GD)Waiting for Integration and List Services to finish up their job..." -fo yellow -ba black
@@ -83,7 +111,7 @@ function Wait {
 }
 function Postpare {
     Write-Host "$(GD)Stopping ADC Services on target CTC to free up their CPU resources" -fo yellow -ba black
-    Invoke-Command -ComputerName ($CTC[$SSN..($SSN+$Servers-1)]) -Credential $creds {
+    Invoke-Command -ComputerName ($CTC[$SSN..($SSN+$Servers-1)]) -Credential $CredsDomain {
         $services = Get-Service -Name 'ADC*'
         $services | Set-Service -StartupType Disabled
         Start-Sleep 1
@@ -122,17 +150,19 @@ function ReplaceGUIDs {
         else { $sw.WriteLine($_) }
     } | Out-Null #Out-File $XmlFile -Encoding utf8
     $sw.Close()
-    "$(GD)$XmlFile now contains new GUIDs."    #Read-Host "Press Enter to exit" | Out-Null}
+    "$(GD)$XmlFile now contains new GUIDs."
+    #Read-Host "Press Enter to exit" | Out-Null
+}
 
 Write-Host "$(GD)Next time to send schedule is $addTime" -f Yellow -b Black
 
 do {
     if ($addTime -lt (Get-Date)) {
         $addTime = $addTime.AddDays(1)
-        prepare
+        #prepare
         send
-        wait
-        postpare
+        #wait
+        #postpare
         ReplaceGUIDs
         if (!$add) { $add = 1 ; $addTime = $addTime.AddHours(-2) }
         Write-Host "$(GD)Next time to send schedule is $addTime" -f Yellow -b Black
