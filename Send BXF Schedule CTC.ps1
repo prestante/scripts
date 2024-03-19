@@ -8,7 +8,7 @@ $XmlFile = '\\wtlnas1\public\ADC\PS\resources\xml\3877.xml'
 
 #Setting configuration and Getting list of ListNames from all Integration Services config files
 $Url = @(foreach ($CTCip in $CTC) {'http://' + $CTCip + ':1985/SendMessage?destination_name=traffic'})
-$servers = 2
+$servers = 6
 $SSN = 0 #SSN is Starting Server Number. 0 means starting from first $CTC pc.
 $lists = 1
 $interval = 40 #OAT interval in seconds between Lists
@@ -159,10 +159,10 @@ Write-Host "$(GD)Next time to send schedule is $addTime" -f Yellow -b Black
 do {
     if ($addTime -lt (Get-Date)) {
         $addTime = $addTime.AddDays(1)
-        #prepare
+        prepare
         send
-        #wait
-        #postpare
+        wait
+        postpare
         ReplaceGUIDs
         if (!$add) { $add = 1 ; $addTime = $addTime.AddHours(-2) }
         Write-Host "$(GD)Next time to send schedule is $addTime" -f Yellow -b Black

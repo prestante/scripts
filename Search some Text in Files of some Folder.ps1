@@ -1,10 +1,10 @@
 ﻿#$folder = 'C:\Users\galkovsky.a\Desktop\KTTC_logs'
 #$folder = '\\fs\change\galkovsky.a\scripts'
-$folder = '\\fs\Shares\Engineering\ADC\QA\PS\scripts'
+$folder = '\\wtlnas1\public\ADC\PS\scripts'
 #$folder = 'C:\Program Files\Imagine Communications'
 #$folder = 'C:\Program Files (x86)\Imagine Communications\ADC Services\log'
 #$search = 'ÿ'
-$search = 'galkovsky.a'
+$search = 'Import-Module'
 $i=0
 #Get-ChildItem $folder -Recurse | ? {($_.Extension -eq '.json') -or ($_.Extension -eq '.config') -or ($_.Extension -eq '.xml')} | % {
 Get-ChildItem $folder -Recurse | ? {($_.Extension -eq '.ps1')} | % {
