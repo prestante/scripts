@@ -31,27 +31,30 @@ $ComputerNames = @(
     [PSCustomObject]@{HostName="WTL-ADC-CTC-30"; IPaddress="10.9.80.127"}
     [PSCustomObject]@{HostName="WTL-ADC-CTC-31"; IPaddress="10.9.80.128"}
     [PSCustomObject]@{HostName="WTL-ADC-CTC-32"; IPaddress="10.9.80.129"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-33"; IPaddress="10.9.80.130"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-34"; IPaddress="10.9.80.131"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-35"; IPaddress="10.9.80.133"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-36"; IPaddress="10.9.80.134"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-37"; IPaddress="10.9.80.135"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-38"; IPaddress="10.9.80.136"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-39"; IPaddress="10.9.80.137"}
+    [PSCustomObject]@{HostName="WTL-ADC-CTC-40"; IPaddress="10.9.80.138"}
 )
-<#[PSCustomObject]@{HostName="WTL-ADC-CTC-33"; IPaddress="10.9.80.130"}
-[PSCustomObject]@{HostName="WTL-ADC-CTC-34"; IPaddress="10.9.80.131"}
-[PSCustomObject]@{HostName="WTL-ADC-CTC-35"; IPaddress="10.9.80.133"}
-[PSCustomObject]@{HostName="WTL-ADC-CTC-36"; IPaddress="10.9.80.134"}
-[PSCustomObject]@{HostName="WTL-ADC-CTC-37"; IPaddress="10.9.80.135"}
-[PSCustomObject]@{HostName="WTL-ADC-CTC-38"; IPaddress="10.9.80.136"}
-[PSCustomObject]@{HostName="WTL-ADC-CTC-39"; IPaddress="10.9.80.137"}
-[PSCustomObject]@{HostName="WTL-ADC-CTC-40"; IPaddress="10.9.80.138"}
-[PSCustomObject]@{HostName="WTL-ADC-CTC-REF"; IPaddress="10.9.80.50"}#>
+    #[PSCustomObject]@{HostName="WTL-ADC-CTC-REF"; IPaddress="10.9.80.50"}
 $CredsLocal = [System.Management.Automation.PSCredential]::new('local\imagineLocal',(ConvertTo-SecureString -AsPlainText $env:imgLocPW -Force))
-$DesiredDomain = 'WTL'
+$CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
+$DesiredDomain = 'CTC'
 
-$IPsToDomain = @(Invoke-Command -ComputerName $ComputerNames.IPaddress -Credential $CredsLocal -ArgumentList $ComputerNames, $DesiredDomain {
+#$IPsToDomain = @(Invoke-Command -ComputerName $ComputerNames.IPaddress -Credential $CredsLocal -ArgumentList $ComputerNames, $DesiredDomain {
+$IPsToDomain = @(Invoke-Command -ComputerName $ComputerNames.HostName -Credential $CredsLocal -ArgumentList $ComputerNames, $DesiredDomain {
     param ($ComputerNames, $DesiredDomain)
     $HostName = HOSTNAME.EXE
 
     $IPaddress = Get-NetIPAddress | Where-Object {$_.AddressState -eq "Preferred" -and $_.ValidLifetime -lt "24:00:00"} | Select-Object -ExpandProperty IPAddress
     $Domain = (Get-WmiObject Win32_ComputerSystem).Domain
     $PartOfDomain = (Get-WmiObject Win32_ComputerSystem).PartOfDomain
-    $DesiredName = $ComputerNames | Where-Object {$_.IPaddress -eq $IPaddress} | Select-Object -ExpandProperty HostName
+    #$DesiredName = $ComputerNames | Where-Object {$_.IPaddress -eq $IPaddress} | Select-Object -ExpandProperty HostName
+    $DesiredName = $HostName
     #$DesiredName = 'WTL-ADC-CTC-REF'
     $report = "$DesiredName ($IPaddress) HostName: $HostName, Domain: $Domain"
 
@@ -79,15 +82,15 @@ if ($IPsToDomain) {
     Write-Host '--------------------------------------------------------------'
     Write-Host "Changing the domain of the next IPs to '$DesiredDomain':"
     Write-Host $IPsToDomain
-    Write-Host 'Waiting 15 seconds' -NoNewline
+    Write-Host 'Waiting 15 seconds. You can stop the script now if you want to interrupt.' -NoNewline
     For ($i = 0; $i -lt 15; $i++) {Start-Sleep 1; Write-Host "." -NoNewline}; Write-Host '.'
 
-    Invoke-Command -ComputerName $IPsToDomain -Credential $CredsLocal -ArgumentList $DesiredDomain {
-        param($DesiredDomain)
+    Invoke-Command -ComputerName $IPsToDomain -Credential $CredsLocal -ArgumentList $DesiredDomain, $CredsDomain {
+        param($DesiredDomain, [PSCredential] $CredsDomain)
+        $HostName = HOSTNAME.EXE
         $IPaddress = Get-NetIPAddress | Where-Object {$_.AddressState -eq "Preferred" -and $_.ValidLifetime -lt "24:00:00"} | Select-Object -ExpandProperty IPAddress
         $Domain = (Get-WmiObject Win32_ComputerSystem).Domain
         $report = "$(HOSTNAME.EXE) ($IPaddress)"
-        $CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
         if ($Domain -notmatch $DesiredDomain -and $DesiredDomain -match 'wtl') {  # if we are not in desired domain/group and desire to wtl, then joining it
             Add-Computer -DomainName 'wtldev.net' -Credential $CredsDomain -Force -Restart
             $report += "`n`t Joining the WTLDEV.NET domain" }
