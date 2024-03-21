@@ -30,24 +30,25 @@ $ComputerNames = @(
     [PSCustomObject]@{ HostName = "WTL-ADC-CTC-29"; IPaddress = "10.9.80.172" }
     [PSCustomObject]@{ HostName = "WTL-ADC-CTC-30"; IPaddress = "10.9.80.173" }
     [PSCustomObject]@{ HostName = "WTL-ADC-CTC-31"; IPaddress = "10.9.80.174" }
-    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-32"; IPaddress = "10.9.80.175" }
-)
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-32"; IPaddress = "10.9.80.175" })
     #[PSCustomObject]@{ HostName = "WTL-ADC-CTC-REF"; IPaddress = "10.9.80.50" }
 $CredsLocal = [System.Management.Automation.PSCredential]::new('local\imagineLocal',(ConvertTo-SecureString -AsPlainText $env:imgLocPW -Force))
 $CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
-$DesiredDomain = 'CTC'
+$DesiredDomain = 'WTL'  # set CTC if you want VMs in a workgroup or WTL if you want them to join WTLDEV.NET domain
+$FreshCTC = 0  # set this flag if you have just created VMs and wrote their IPs into the table. So we are sure IPs correspond to CTC VMs.
 
-#$IPsToDomain = @(Invoke-Command -ComputerName $ComputerNames.IPaddress -Credential $CredsLocal -ArgumentList $ComputerNames, $DesiredDomain {
-$IPsToDomain = @(Invoke-Command -ComputerName $ComputerNames.HostName -Credential $CredsLocal -ArgumentList $ComputerNames, $DesiredDomain {
+if ( $FreshCTC ) { $ComputersList = $ComputerNames.IPAddress }
+else { $ComputersList = $ComputerNames.HostName }
+
+$IPsToDomain = @(Invoke-Command -ComputerName $ComputersList -Credential $CredsLocal -ArgumentList $ComputerNames, $DesiredDomain {
     param ($ComputerNames, $DesiredDomain)
     $HostName = HOSTNAME.EXE
 
     $IPaddress = Get-NetIPAddress | Where-Object {$_.AddressState -eq "Preferred" -and $_.ValidLifetime -lt "24:00:00"} | Select-Object -ExpandProperty IPAddress
     $Domain = (Get-WmiObject Win32_ComputerSystem).Domain
     $PartOfDomain = (Get-WmiObject Win32_ComputerSystem).PartOfDomain
-    #$DesiredName = $ComputerNames | Where-Object {$_.IPaddress -eq $IPaddress} | Select-Object -ExpandProperty HostName
-    $DesiredName = $HostName
-    #$DesiredName = 'WTL-ADC-CTC-REF'
+    if ($HostName -eq 'WTL-ADC-CTC-REF') {$DesiredName = $ComputerNames | Where-Object {$_.IPaddress -eq $IPaddress} | Select-Object -ExpandProperty HostName}  # this means we have just created these VMs and they should be renamed in accordance with manual IP/name table
+    else {$DesiredName = $HostName}  # this means VMs are already have correct names but IPs may differ from manual IP/name table made on VM create
     $report = "$DesiredName ($IPaddress) HostName: $HostName, Domain: $Domain"
 
     if ($HostName -ceq $DesiredName -and $Domain -match $DesiredDomain) { $report += "`t The computer already has a desired name '$DesiredName' and is part of the desired domain '$DesiredDomain'" }
@@ -66,31 +67,35 @@ $IPsToDomain = @(Invoke-Command -ComputerName $ComputerNames.HostName -Credentia
         }
     }
     
-    Write-Host "$report" -f (Get-Random (1,2,3,5,6,9,10,11,13,14))
+    Write-Host "$Report" -f ( 1, 2, 3, 5, 6, 9, 10, 11, 13, 14 )[ ( $HostName.Split('-')[-1] ) % 10 ]  # Choose the color as a remainder of dividing the name number part by 10 (number of color variants)
     if ($NeedDomainChanges) {return $IPaddress}  # to return an IP to add this PC to the domain after restart
 })
 
+$IPsToDomainSorted = $IPsToDomain | Sort-Object
 if ($IPsToDomain) {
     Write-Host '--------------------------------------------------------------'
     Write-Host "Changing the domain of the next IPs to '$DesiredDomain':"
-    Write-Host $IPsToDomain
+    Write-Host $IPsToDomainSorted
     Write-Host 'Waiting 15 seconds. You can stop the script now if you want to interrupt.' -NoNewline
     For ($i = 0; $i -lt 15; $i++) {Start-Sleep 1; Write-Host "." -NoNewline}; Write-Host '.'
 
-    Invoke-Command -ComputerName $IPsToDomain -Credential $CredsLocal -ArgumentList $DesiredDomain, $CredsDomain {
-        param($DesiredDomain, [PSCredential] $CredsDomain)
-        $HostName = HOSTNAME.EXE
-        $IPaddress = Get-NetIPAddress | Where-Object {$_.AddressState -eq "Preferred" -and $_.ValidLifetime -lt "24:00:00"} | Select-Object -ExpandProperty IPAddress
-        $Domain = (Get-WmiObject Win32_ComputerSystem).Domain
-        $report = "$(HOSTNAME.EXE) ($IPaddress)"
-        if ($Domain -notmatch $DesiredDomain -and $DesiredDomain -match 'wtl') {  # if we are not in desired domain/group and desire to wtl, then joining it
-            Add-Computer -DomainName 'wtldev.net' -Credential $CredsDomain -Force -Restart
-            $report += "`n`t Joining the WTLDEV.NET domain" }
-        elseif ($Domain -notmatch $DesiredDomain -and $DesiredDomain -notmatch 'wtl') {  # if we are not in desired domain/group and desire somewhere else, then joining a workgroup
-            Add-Computer -WorkgroupName $DesiredDomain -Credential $CredsDomain -Force -Restart
-            $report += "`n`t Joining the '$DesiredDomain' workgroup" }
-        $report += "`n`t Restarting the computer"
-        Write-Host "$report" -f ( 1, 2, 3, 5, 6, 9, 10, 11, 13, 14 )[ ( $HostName.Split('-')[-1] ) % 10 ]  # Choosing the color as a remainder of dividing the name number part by 10 (number of color variants)
+    foreach ($Computer in $IPsToDomainSorted) {
+        Invoke-Command -ComputerName $Computer -Credential $CredsLocal -ArgumentList $DesiredDomain, $CredsDomain {
+            param($DesiredDomain, [PSCredential] $CredsDomain)
+            $HostName = HOSTNAME.EXE
+            $IPaddress = Get-NetIPAddress | Where-Object {$_.AddressState -eq "Preferred" -and $_.ValidLifetime -lt "24:00:00"} | Select-Object -ExpandProperty IPAddress
+            $Domain = (Get-WmiObject Win32_ComputerSystem).Domain
+            $report = "$(HOSTNAME.EXE) ($IPaddress)"
+            if ($Domain -notmatch $DesiredDomain -and $DesiredDomain -match 'wtl') {  # if we are not in desired domain/group and desire to wtl, then joining it
+                Add-Computer -DomainName 'wtldev.net' -Credential $CredsDomain -Force -Restart
+                $report += "`n`t Joining the WTLDEV.NET domain" }
+            elseif ($Domain -notmatch $DesiredDomain -and $DesiredDomain -notmatch 'wtl') {  # if we are not in desired domain/group and desire somewhere else, then joining a workgroup
+                Add-Computer -WorkgroupName $DesiredDomain -Credential $CredsDomain -Force -Restart
+                $report += "`n`t Joining the '$DesiredDomain' workgroup" }
+            $report += "`n`t Restarting the computer"
+            Write-Host "$report" -f ( 1, 2, 3, 5, 6, 9, 10, 11, 13, 14 )[ ( $HostName.Split('-')[-1] ) % 10 ]  # Choosing the color as a remainder of dividing the name number part by 10 (number of color variants)
+        }
+        Start-Sleep -Seconds 10
     }
 }
 
