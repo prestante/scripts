@@ -67,17 +67,6 @@ Invoke-Command -ComputerName $CTC -ArgumentList $InstallAppVersion, $CredsLocal,
     function Install-Services {
         param ($Version = $InstallAppVersion)
         $Report = ""
-        if (!(Get-ItemProperty HKLM:Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object {$_.DisplayName -like "Microsoft SQL Server Compact*"} | Select-Object DisplayName, DisplayVersion)) {
-            try {
-                $File = Copy-Item 'P:\Resources\SSCERuntime_x64-ENU.exe' 'C:\temp' -PassThru
-                $Report += "`n`t $(GD) Installing Microsoft SQL Server Compact 4.0 SP1 x64 ENU - "
-                Start-Process $File.FullName -ArgumentList "/package /quiet" -Wait
-                $Report += "Done"
-            }
-            catch {
-                $Report += "`n`t $(GD) Failed to install Microsoft SQL Server Compact 4.0 SP1 x64 ENU"
-            }
-        }
         $File = Get-ChildItem 'C:\temp' | Where-Object { $_.Name -match 'ADCServicesSetup' -and $_.VersionInfo.ProductVersion -match $Version} | Select-Object -Last 1
         if ( $File ) {  # If there is an installer, prepare parameters and start removal
             $DBName = $DBparams.DBName ; $DBUser = $DBparams.DBUser ; $DBPassword = $DBparams.DBPassword
