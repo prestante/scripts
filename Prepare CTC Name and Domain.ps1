@@ -1,46 +1,38 @@
 $ComputerNames = @(
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-01"; IPaddress="10.9.80.59"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-02"; IPaddress="10.9.80.95"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-03"; IPaddress="10.9.80.96"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-04"; IPaddress="10.9.80.97"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-05"; IPaddress="10.9.80.98"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-06"; IPaddress="10.9.80.99"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-07"; IPaddress="10.9.80.100"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-08"; IPaddress="10.9.80.101"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-09"; IPaddress="10.9.80.102"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-10"; IPaddress="10.9.80.106"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-11"; IPaddress="10.9.80.107"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-12"; IPaddress="10.9.80.108"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-13"; IPaddress="10.9.80.109"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-14"; IPaddress="10.9.80.110"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-15"; IPaddress="10.9.80.112"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-16"; IPaddress="10.9.80.113"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-17"; IPaddress="10.9.80.114"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-18"; IPaddress="10.9.80.115"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-19"; IPaddress="10.9.80.116"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-20"; IPaddress="10.9.80.117"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-21"; IPaddress="10.9.80.118"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-22"; IPaddress="10.9.80.119"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-23"; IPaddress="10.9.80.120"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-24"; IPaddress="10.9.80.121"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-25"; IPaddress="10.9.80.122"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-26"; IPaddress="10.9.80.123"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-27"; IPaddress="10.9.80.124"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-28"; IPaddress="10.9.80.125"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-29"; IPaddress="10.9.80.126"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-30"; IPaddress="10.9.80.127"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-31"; IPaddress="10.9.80.128"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-32"; IPaddress="10.9.80.129"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-33"; IPaddress="10.9.80.130"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-34"; IPaddress="10.9.80.131"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-35"; IPaddress="10.9.80.133"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-36"; IPaddress="10.9.80.134"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-37"; IPaddress="10.9.80.135"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-38"; IPaddress="10.9.80.136"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-39"; IPaddress="10.9.80.137"}
-    [PSCustomObject]@{HostName="WTL-ADC-CTC-40"; IPaddress="10.9.80.138"}
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-01"; IPaddress = "10.9.80.144" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-02"; IPaddress = "10.9.80.145" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-03"; IPaddress = "10.9.80.146" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-04"; IPaddress = "10.9.80.147" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-05"; IPaddress = "10.9.80.148" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-06"; IPaddress = "10.9.80.149" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-07"; IPaddress = "10.9.80.150" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-08"; IPaddress = "10.9.80.151" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-09"; IPaddress = "10.9.80.152" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-10"; IPaddress = "10.9.80.153" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-11"; IPaddress = "10.9.80.154" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-12"; IPaddress = "10.9.80.155" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-13"; IPaddress = "10.9.80.156" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-14"; IPaddress = "10.9.80.157" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-15"; IPaddress = "10.9.80.158" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-16"; IPaddress = "10.9.80.159" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-17"; IPaddress = "10.9.80.160" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-18"; IPaddress = "10.9.80.161" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-19"; IPaddress = "10.9.80.162" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-20"; IPaddress = "10.9.80.163" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-21"; IPaddress = "10.9.80.164" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-22"; IPaddress = "10.9.80.165" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-23"; IPaddress = "10.9.80.166" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-24"; IPaddress = "10.9.80.167" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-25"; IPaddress = "10.9.80.168" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-26"; IPaddress = "10.9.80.169" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-27"; IPaddress = "10.9.80.170" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-28"; IPaddress = "10.9.80.171" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-29"; IPaddress = "10.9.80.172" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-30"; IPaddress = "10.9.80.173" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-31"; IPaddress = "10.9.80.174" }
+    [PSCustomObject]@{ HostName = "WTL-ADC-CTC-32"; IPaddress = "10.9.80.175" }
 )
-    #[PSCustomObject]@{HostName="WTL-ADC-CTC-REF"; IPaddress="10.9.80.50"}
+    #[PSCustomObject]@{ HostName = "WTL-ADC-CTC-REF"; IPaddress = "10.9.80.50" }
 $CredsLocal = [System.Management.Automation.PSCredential]::new('local\imagineLocal',(ConvertTo-SecureString -AsPlainText $env:imgLocPW -Force))
 $CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
 $DesiredDomain = 'CTC'
