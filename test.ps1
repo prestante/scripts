@@ -69,13 +69,13 @@ while ( $true ) {  # Main cycle
         $AvgMem = [math]::round((($AvgMem * $qt + $Mem) / ($qt + 1)),2)
         $Elapsed = "{0:00}:{1:mm}:{1:ss}" -f [math]::Floor(((get-date) - $StartTime).TotalHours),((get-date) - $StartTime)
         
-        #Clear-Host
+        Clear-Host
         "PID: {0}  Mem: {1:n2}  Avg: {2:n2}  Elapsed: {4}  SEmem: {5}  JobPing: {6}  JobData: {7}  GoodCTC: {8}" -f $PID, $Mem, $AvgMem, $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss:fff'), $Elapsed, $Table[0].SEmem, "$($JobPing.Id) $($JobPing.State)", "$($JobData.Id) $($JobData.State)", $Table.Where({$null -ne $_.Ping}).Count
         $Table | Format-Table
         $StopwatchDraw.Restart()
         $qt++
     }
-    if ( $StopwatchJob.Elapsed.TotalMinutes -ge 1 ) {  # Once in interval remove all jobs and create new one(s)
+    if ( $StopwatchJob.Elapsed.TotalMinutes -ge 1 ) {  # Once in interval remove all jobs to free memory
         Remove-Job * -Force
         Remove-Variable JobPing, JobData
         $StopwatchJob.Restart()
