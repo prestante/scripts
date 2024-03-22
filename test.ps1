@@ -1,160 +1,65 @@
-﻿#$CTC = @('WTL-ADC-CTC-01.wtldev.net', 'WTL-ADC-CTC-02.wtldev.net', 'WTL-ADC-CTC-03.wtldev.net', 'WTL-ADC-CTC-04.wtldev.net', 'WTL-ADC-CTC-05.wtldev.net', 'WTL-ADC-CTC-06.wtldev.net', 'WTL-ADC-CTC-07.wtldev.net', 'WTL-ADC-CTC-08.wtldev.net', 'WTL-ADC-CTC-09.wtldev.net', 'WTL-ADC-CTC-10.wtldev.net', 'WTL-ADC-CTC-11.wtldev.net', 'WTL-ADC-CTC-12.wtldev.net', 'WTL-ADC-CTC-13.wtldev.net', 'WTL-ADC-CTC-14.wtldev.net', 'WTL-ADC-CTC-15.wtldev.net', 'WTL-ADC-CTC-16.wtldev.net', 'WTL-ADC-CTC-17.wtldev.net', 'WTL-ADC-CTC-18.wtldev.net', 'WTL-ADC-CTC-19.wtldev.net', 'WTL-ADC-CTC-20.wtldev.net', 'WTL-ADC-CTC-21.wtldev.net', 'WTL-ADC-CTC-22.wtldev.net', 'WTL-ADC-CTC-23.wtldev.net', 'WTL-ADC-CTC-24.wtldev.net', 'WTL-ADC-CTC-25.wtldev.net', 'WTL-ADC-CTC-26.wtldev.net', 'WTL-ADC-CTC-27.wtldev.net', 'WTL-ADC-CTC-28.wtldev.net', 'WTL-ADC-CTC-29.wtldev.net', 'WTL-ADC-CTC-30.wtldev.net', 'WTL-ADC-CTC-31.wtldev.net', 'WTL-ADC-CTC-32.wtldev.net')
-$CTC = @('WTL-ADC-CTC-10.wtldev.net')
-$WannaRemove = 0  # top priority
-$InstallAppVersion = '5.10.4.1'
-$DBparams = @{DBName = 'wtl-hpx-325-m01' ; DBUser = 'sa' ; DBPassword = 'ImagineDB1'}
+﻿$CTC = @('WTL-ADC-CTC-01.wtldev.net', 'WTL-ADC-CTC-02.wtldev.net', 'WTL-ADC-CTC-03.wtldev.net', 'WTL-ADC-CTC-04.wtldev.net', 'WTL-ADC-CTC-05.wtldev.net', 'WTL-ADC-CTC-06.wtldev.net', 'WTL-ADC-CTC-07.wtldev.net', 'WTL-ADC-CTC-08.wtldev.net', 'WTL-ADC-CTC-09.wtldev.net', 'WTL-ADC-CTC-10.wtldev.net', 'WTL-ADC-CTC-11.wtldev.net', 'WTL-ADC-CTC-12.wtldev.net', 'WTL-ADC-CTC-13.wtldev.net', 'WTL-ADC-CTC-14.wtldev.net', 'WTL-ADC-CTC-15.wtldev.net', 'WTL-ADC-CTC-16.wtldev.net', 'WTL-ADC-CTC-17.wtldev.net', 'WTL-ADC-CTC-18.wtldev.net', 'WTL-ADC-CTC-19.wtldev.net', 'WTL-ADC-CTC-20.wtldev.net', 'WTL-ADC-CTC-21.wtldev.net', 'WTL-ADC-CTC-22.wtldev.net', 'WTL-ADC-CTC-23.wtldev.net', 'WTL-ADC-CTC-24.wtldev.net', 'WTL-ADC-CTC-25.wtldev.net', 'WTL-ADC-CTC-26.wtldev.net', 'WTL-ADC-CTC-27.wtldev.net', 'WTL-ADC-CTC-28.wtldev.net', 'WTL-ADC-CTC-29.wtldev.net', 'WTL-ADC-CTC-30.wtldev.net', 'WTL-ADC-CTC-31.wtldev.net', 'WTL-ADC-CTC-32.wtldev.net')
+#$CTC = @('WTL-ADC-CTC-01.wtldev.net', 'WTL-ADC-CTC-02.wtldev.net', 'WTL-ADC-CTC-03.wtldev.net', 'WTL-ADC-CTC-04.wtldev.net', 'WTL-ADC-CTC-05.wtldev.net', 'WTL-ADC-CTC-06.wtldev.net', 'WTL-ADC-CTC-07.wtldev.net', 'WTL-ADC-CTC-08.wtldev.net', 'WTL-ADC-CTC-09.wtldev.net', 'WTL-ADC-CTC-10.wtldev.net')
 
-$CredsLocal = [System.Management.Automation.PSCredential]::new('local\imagineLocal',(ConvertTo-SecureString -AsPlainText $env:imgLocPW -Force))
+$table = @()
 $CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
-$BuildsFolder = '\\wtlnas5\Public\Releases\ADC\ADC Services'
-$wtlnas1PSFolder = '\\wtlnas1\public\ADC\PS'
-Write-Host "$(if ($WannaRemove){"Removing"} else {"Installing"}) ADC Services $InstallAppVersion... Please wait..."
 
-# main PS remote procedure
-Invoke-Command -ComputerName $CTC -ArgumentList $InstallAppVersion, $CredsLocal, $CredsDomain, $BuildsFolder, $wtlnas1PSFolder, $DBparams, $WannaRemove -Credential $CredsDomain {
-    param ( $InstallAppVersion, [PSCredential] $CredsLocal, [PSCredential] $CredsDomain, $BuildsFolder, $wtlnas1PSFolder, $DBparams, $WannaRemove )
-    $HostName = "$(HOSTNAME.EXE)"
-    $IPaddress = Get-NetIPAddress | Where-Object {$_.AddressState -eq "Preferred" -and $_.ValidLifetime -lt "24:00:00"} | Select-Object -ExpandProperty IPAddress
-    $Report = "$HostName ($IPaddress)"
-    function GD {Get-Date -Format 'yyyy-MM-dd HH:mm:ss -'}
-    function Set-Drive {
-        Write-Host "`n`t $(GD) Creating PSDrives:"
-        try {
-            Write-Host "`n`t`t '$BuildsFolder'"
-            New-PSDrive -Name B -PSProvider FileSystem -Root $BuildsFolder -Credential $CredsDomain -Scope Global -ErrorAction Stop | Out-Null
-            Write-Host " - Done"
-        }
-        catch { Write-Host "`n`t`t Error: $_" }
-        try {
-            Write-Host "`n`t`t '$wtlnas1PSFolder'"
-            New-PSDrive -Name P -PSProvider FileSystem -Root $wtlnas1PSFolder -Credential $CredsDomain -Scope Global -ErrorAction Stop | Out-Null
-            Write-Host " - Done"
-        }
-        catch { Write-Host "`n`t`t Error: $_" }
-        return $Report
+# Form a table
+foreach ($server in $CTC) {
+    $ipAddress = [System.Net.Dns]::GetHostAddresses($server) | Where-Object { $_.AddressFamily -eq 'InterNetwork' } | Select-Object -ExpandProperty IPAddressToString
+    $table += [PSCustomObject]@{
+        ServerName = $server -replace '\.wtldev\.net$'
+        IPAddress = $ipAddress
+        DSver = ''
+        DSmem = ''
+        SEver = ''
+        SEmem = ''
     }
-    function Copy-Installer {
-        param ($Version = $InstallAppVersion)
-        $Report = ""
-        try { if (-not (Get-ChildItem B: -ErrorAction Stop | Where-Object { $_.Name -match $Version }).Count) { Throw }
-            $DistantFolderPath = ( Get-ChildItem B: -ErrorAction Stop | Where-Object { $_.Name -match $Version } | Select-Object -First 1 ).FullName
-            try { $DistantFilePath = (Get-ChildItem $DistantFolderPath -ErrorAction Stop | Where-Object { $_.Name -match '^ADCServicesSetup.*exe' } | Select-Object -First 1).FullName
-                try { Test-Path $DistantFilePath -ErrorAction Stop | Out-Null
-                    try { New-Item "C:\temp" -ItemType Directory -Force -ErrorAction SilentlyContinue | Out-Null
-                        try { Write-Host "`n`t $(GD) Copying ADC Services $Version installer into C:\temp - "
-                            Copy-Item $DistantFilePath "C:\temp\" -ErrorAction Stop
-                            Write-Host "Done"
-                        } catch { Write-Host "`n`t $(GD) Error while copying the installer to 'C:\temp': $_" }
-                    } catch { Write-Host "`n`t $(GD) Error while creating C:\temp directory: $_" }
-                } catch { Write-Host "`n`t $(GD) Error while looking for the desired installer in '$DistantFolderPath': $_" }
-            } catch { Write-Host "`n`t $(GD) Error while getting files from '$DistantFolderPath': $_" }
-        } catch { Write-Host "`n`t $(GD) Error while searching for the appropriate folder for version $Version" }
-        return $Report
-    }
-    function Stop-Services {
-        $Report = ""
-        $Services = Get-Service -Name 'ADC*' -ErrorAction SilentlyContinue
-        if ( $Services.Status -contains 'Running' ) {  # Some ADC Services are running, stopping them
-            Write-Host "`n`t $(GD) Stopping ADC Services - "
-            $Services | Set-Service -StartupType Disabled -ErrorAction SilentlyContinue ; Start-Sleep 1
-            Get-Process -Name 'Harris.Automation.ADC.Services*' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue ; Start-Sleep 1
-            Get-Process -Name 'Harris.Automation.ADC.Services*' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue ; Start-Sleep 1
-            $Services  | Set-Service -StartupType Manual -ErrorAction SilentlyContinue ; Start-Sleep 1
-            Write-Host "Done"
-        }        
-        return $Report
-    }
-    function Install-Services {
-        param ($Version = $InstallAppVersion)
-        $Report = ""
-        if (!(Get-ItemProperty HKLM:Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object {$_.DisplayName -like "Microsoft SQL Server Compact*"} | Select-Object DisplayName, DisplayVersion)) {
-            try {
-                $File = Copy-Item 'P:\Resources\SSCERuntime_x64-ENU.exe' 'C:\temp' -PassThru
-                Write-Host "`n`t $(GD) Installing Microsoft SQL Server Compact 4.0 SP1 x64 ENU - "
-                Start-Process $File.FullName -ArgumentList "/package /quiet" -Wait
-                Write-Host "Done"
+}
+
+# Continuously request data from servers in background job
+$Job = Start-Job -ArgumentList $table, $CredsDomain -ScriptBlock {
+    param ($table, [pscredential]$CredsDomain)
+    $i = 5
+    while ($i -gt 0) {
+        #Measure-Command {
+            Invoke-Command -ComputerName $table.ServerName -Credential $CredsDomain {
+                $ServerName = HOSTNAME.EXE
+                $IPaddress = [System.Net.Dns]::GetHostAddresses($Name) | Where-Object { $_.AddressFamily -eq 'InterNetwork' } | Select-Object -ExpandProperty IPAddressToString
+                $DSProcess = Get-Process -Name ADC1000NT -ErrorAction SilentlyContinue
+                $ServicesProcesses = Get-Process -Name Harris* -ErrorAction SilentlyContinue
+                return [pscustomobject]@{
+                    ServerName = $ServerName
+                    IPaddress = $IPaddress
+                    DSver = if (Test-Path 'C:\Users\Public\Desktop\ADC Device Server.lnk') {
+                        $sh = New-Object -ComObject WScript.Shell
+                        ((Get-ChildItem $sh.CreateShortcut('C:\Users\Public\Desktop\ADC Device Server.lnk').Targetpath).VersionInfo).ProductVersion
+                    } else {''}
+                    DSmem = if ($DSProcess) { "{0:n2}" -f [math]::round(($DSProcess.WorkingSet64 | Measure-Object -Sum).Sum/1MB,2) }
+                            else {''}
+                    SEver = (Get-ItemProperty HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object {$_.DisplayName -eq 'ADC Services'} | Select-Object -Property DisplayVersion).DisplayVersion
+                    SEmem = if ($ServicesProcesses) {
+                        "{0:n2}" -f [math]::Round((((Get-Process -Name Harris*).WorkingSet64 | Measure-Object -Sum).Sum/1MB),2)
+                    } else {''}
+                }
             }
-            catch {
-                Write-Host "`n`t $(GD) Failed to install Microsoft SQL Server Compact 4.0 SP1 x64 ENU"
-            }
-        }
-        $File = Get-ChildItem 'C:\temp' | Where-Object { $_.Name -match 'ADCServicesSetup' -and $_.VersionInfo.ProductVersion -match $Version} | Select-Object -Last 1
-        if ( $File ) {  # If there is an installer, prepare parameters and start removal
-            $DBName = $DBparams.DBName ; $DBUser = $DBparams.DBUser ; $DBPassword = $DBparams.DBPassword
-            $Parameters = "/s, /v`"/qn`" /v`"IS_SQLSERVER_SERVER=$DBName`" /v`"IS_SQLSERVER_USERNAME=$DBUser`" /v`"IS_SQLSERVER_PASSWORD=$DBPassword`" /v`"INSTALLLEVEL=101`" /v`"/l*v C:\ADCServicesInstaller.log`" /v`"REBOOT=ReallySuppress`""
-            Write-Host "`n`t $(GD) Installing $($File.VersionInfo.ProductName) $($File.VersionInfo.ProductVersion) - "
-            Start-Process $File.FullName -ArgumentList $Parameters -Wait
-            Write-Host "Done"
-        }
-        else { Write-Host "`n`t $(GD) Failed to install ADC Services $($InstalledApp.DisplayVersion) because there is no appropriate installer in C:\temp"}
-        return $Report
+        #} | Select-Object -ExpandProperty TotalMilliseconds
     }
-    function Remove-Services {
-        param ($Version = $InstallAppVersion)
-        $Report = ""
-        if (Get-Service -Name 'ADC*' -ErrorAction SilentlyContinue) {
-            $Report += Stop-Services
-            $File = Get-ChildItem 'C:\temp' | Where-Object { $_.Name -match 'ADCServicesSetup' -and $_.VersionInfo.ProductVersion -match $Version} | Select-Object -Last 1
-            if ( $File ) {  # If there is an installer, prepare parameters and start removal
-                $Parameters = "/x /s, /v`"/qn`" /v`"DELETEDB=No`" /v`"REBOOT=ReallySuppress`"" # parameters for removing ADC Services
-                Write-Host "`n`t $(GD) Removing $($File.VersionInfo.ProductName) $($File.VersionInfo.ProductVersion) - "
-                Start-Process $File.FullName -ArgumentList $Parameters -Wait
-                Write-Host "Done"
-                #Stop-Process -Name ADC1000NT -Force ; Start-Sleep 1
-                #Write-Host "`n`t $(GD) Restarting the computer..."
-                #Restart-Computer -Force
-            }
-            else { Write-Host "`n`t $(GD) Failed to remove ADC Services $($InstalledApp.DisplayVersion) because there is no appropriate installer in C:\temp"}
-        }
-        else { Write-Host "`n`t $(GD) Failed to remove ADC Services $($InstalledApp.DisplayVersion) because ADC Services are not found in the system"}
-        return $Report
-    }
-    function Set-Configs {
-        $Report = ""
-        $Report = "`n`t $(GD) Copying ADC Services config files, rules and license - "
-        Get-ChildItem 'P:\resources\CTC Services Refs' | Where-Object {$_.Name -match '.*CTCRef.xml'} | ForEach-Object { 
-            (Get-Content $_.FullName) -replace '#NUM',$HostName.Replace('WTL-ADC-CTC-','') -replace '#ADDRESS',$IPaddress -replace '#DBName',$DBparams.DBName -replace '#DBUser',$DBparams.DBUser -replace '#DBPassword',$DBparams.DBPassword |
-            Out-File "C:\Program Files (x86)\Imagine Communications\ADC Services\config\$($_.Name -replace 'CTCRef')"  -Encoding utf8 -Force
-        }
-        New-Item -Path 'C:\Program Files (x86)\Imagine Communications\ADC Services\rules' -ItemType Directory -Force -ErrorAction SilentlyContinue | Out-Null
-        New-Item -Path 'C:\Program Files (x86)\Imagine Communications\ADC Services\license' -ItemType Directory -Force -ErrorAction SilentlyContinue | Out-Null
-        Copy-Item 'P:\resources\ADCLicense.lic' 'C:\Program Files (x86)\Imagine Communications\ADC Services\license' -Force
-        Copy-Item 'P:\resources\PlaylistTranslator.Rule.xml' 'C:\Program Files (x86)\Imagine Communications\ADC Services\rules' -Force
-        Copy-Item 'P:\resources\Harris.Automation.ADC.Services.IntegrationServiceHost.exe.config' 'C:\Program Files (x86)\Imagine Communications\ADC Services' -Force
-        Write-Host "Done"
-        return $Report
-    }
+}
 
-    # check which ADC Services are already installed, if any
-    $InstalledApp = (Get-ItemProperty HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object {$_.displayname -like "ADC Services"})
-    $Report += Set-Drive
-    Import-Module "\\wtlnas1\public\ADC\PS\scripts\Compare-ADCVersions.psm1"
+# Set and start a stopwatch to show table once every second
+$Stopwatch = [System.Diagnostics.Stopwatch]::new()
+$Stopwatch.Start()
 
-    if ( $WannaRemove ) {
-        $Report += Copy-Installer       # search for and copy the ADC Services installer
-        $Report += Remove-Services      # stop and remove ADC Services
+while ( $true ) {
+    if ( (Get-Job $Job.Id).HasMoreData ) {
+        $Results = Receive-Job $Job.Id | Select-Object * -ExcludeProperty PSComputerName, RunspaceId #| Sort-Object -Property Name | Format-Table
+        foreach ($result in $Results) {
+            #$table.Where({$result.ServerName -match $_.ServerName}).foreach({$_.ping=$result.Ping;$_.DSver=$result.DSver;$_.DSmem=$result.DSmem;$_.SEver=$result.SEver;$_.SEmem=$result.SEmem;$_.PLmem=$result.PLmem;$_.CTmem=$result.CTmem})
+            $table.Where({$result.ServerName -match $_.ServerName}).foreach({$_.DSver=$result.DSver;$_.DSmem=$result.DSmem;$_.SEver=$result.SEver;$_.SEmem=$result.SEmem})
+        }
     }
-    elseif ( -not $InstalledApp ) {  # there is no ADC Services installed, so install them
-        $Report += Copy-Installer
-        $Report += Install-Services
-        $Report += Stop-Services
-        $Report += Set-Configs
-    }
-    elseif ( $InstallAppVersion -match $InstalledApp.DisplayVersion ) {  # we already have the same version installed
-        Write-Host "`n`t $(GD) $($InstalledApp.DisplayName) $($InstalledApp.DisplayVersion) is already installed."
-        $Report += Stop-Services
-        $Report += Set-Configs
-    }
-    elseif ( Compare-ADCVersions -Version1 $InstallAppVersion -Version2 $InstalledApp.DisplayVersion ) {  # we have older version installed, so try to upgrade
-        Write-Host "`n`t $(GD) $($InstalledApp.DisplayName) $($InstalledApp.DisplayVersion) is installed, upgrading to $($InstallAppVersion)"
-        $Report += Copy-Installer
-        $Report += Stop-Services
-        $Report += Install-Services
-        $Report += Set-Configs
-    } 
-    else { Write-Host "`n`t $(GD) Don't know what else))" }
-
-
-    #Write-Host "`n`t Returning so far"
-    Write-Host "$Report" -f ( 1, 2, 3, 5, 6, 9, 10, 11, 13, 14 )[ ( $HostName.Split('-')[-1] ) % 10 ]  # Choose the color as a remainder of dividing the name number part by 10 (number of color variants)
+    #if ( (Get-Date | Select-Object -ExpandProperty Millisecond) -gt 950 ) { $table | Format-Table }
+    if ($Stopwatch.ElapsedMilliseconds -ge 900) { Get-Date -Format 'yyyy-MM-dd HH:mm:ss:fff' ; $table | Format-Table ; $Stopwatch.Restart()}
+    Start-Sleep -Milliseconds 10
 }
