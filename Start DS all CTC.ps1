@@ -8,6 +8,7 @@ $PSSessionOption.IdleTimeout = New-TimeSpan -days 24 -Seconds 0
 Invoke-Command -ComputerName $CTC -Credential $CredsDomain -InDisconnectedSession {
     $HostName = HOSTNAME.EXE
     if  ( Get-Process ADC1000NT -ErrorAction SilentlyContinue ) {
+        # do nothing
     } else {
         Start-Process 'C:\server\ADC1000NT.exe' -ArgumentList ($HostName -replace 'WTL-ADC-')  # get CTC server name
     }
@@ -31,4 +32,3 @@ Invoke-Command -ComputerName $CTC -Credential $CredsDomain -InDisconnectedSessio
 }#>
 
 if ( $Host.Name -notmatch 'Visual Studio') { Read-Host }
-################################################DS did not started on all CTC
