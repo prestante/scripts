@@ -45,7 +45,7 @@ $StopwatchReset.Start()
 $StartTime = Get-Date
 $Iterations = 0
 
-while ( $true ) {  # Main cycle
+do {  # Main cycle
     # Handle Jobs. Get results from all Jobs, find corresponding indexes in the List and rewrite them with the new data. Also remove and restart hanging jobs
     foreach ( $job in Get-Job ) {
         $Result = Receive-Job $job -ErrorAction SilentlyContinue
@@ -80,7 +80,43 @@ while ( $true ) {  # Main cycle
     # Force remove all jobs and start them again once in an hour
     if ( $StopwatchReset.Elapsed.Hours -ge 1 ) { 
         $StopwatchReset.Restart()
+        Remove-Job * -Force -ErrorAction SilentlyContinue
         foreach ($server in $CTC) { 
             Invoke-Command -ComputerName $server -Credential $CredsDomain -ArgumentList $CommandCenterHost -AsJob -JobName $server -ScriptBlock $ScriptBlock | Out-Null } }
 
-    Start-Sleep -Milliseconds 200 }
+    Start-Sleep -Milliseconds 200
+
+    # Look for a key press
+    if ($host.ui.RawUi.KeyAvailable) {
+        $key=$host.ui.RawUI.ReadKey("NoEcho,IncludeKeyDown,IncludeKeyUp")
+        $Host.UI.RawUI.FlushInputBuffer()
+        if ($key.keydown) {
+            switch ($key.VirtualKeyCode) {
+                <#Enter#> 13 {
+                }
+                <#P#> 80 {
+                    if ($table.PLmem -gt 0) {StopPL}
+                        else {StartPL}
+                }
+                <#S#>     83 {
+                    $Chosen = [int](Read-Host "Which DS to start/stop? Default = All")
+                        if (($Chosen) -and ($table.DSmem[$Chosen-1] -ne [DBNull]::Value)) {StopDS -DS $Chosen}
+                        elseif (($Chosen) -and ($table.DSmem[$Chosen-1] -eq [DBNull]::Value)) {StartDS -DS $Chosen}
+                        elseif ((!$Chosen) -and [bool]($table.DSmem -gt 0)) {StopDS}
+                        elseif ((!$Chosen) -and ![bool]($table.DSmem -gt 0)) {StartDS}
+                }
+                <#T#>     84 {
+                    if ($table.CTmem -gt 0) {StopCT}
+                        else {StartCT}
+                }
+                <#Esc#>   27 { Remove-Job * -Force -ErrorAction SilentlyContinue ; exit }
+                <#Space#> 32 {
+                    if ($table.DSmem -gt 0) {StopDS}
+                        else {StartDS}
+                }
+                <#Tab#>   9 {
+                    if ($table.SEmem -gt 0) {StopSE}
+                        else {StartSE}
+                }
+                <#F1#>    112 {$infoCounter = 10}
+                <#F4#>    115 { } } } } } until ($key.VirtualKeyCode -eq 27)
