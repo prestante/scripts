@@ -1,1 +1,1 @@
-﻿Invoke-Command -ComputerName 'wtl-adc-ctc-25' -ScriptBlock {HOSTNAME.EXE} -AsJob
+﻿
