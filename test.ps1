@@ -5,7 +5,7 @@
 # The memory is... The CPU is from 2 to 8 (at start). As for CTC CPU, it looks less intense than with continuous jobs.
 
 $CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
-$CommandCenterHost = HOSTNAME.EXE
+$CommandCenterHost = $env:COMPUTERNAME
 $List = New-Object 'System.Collections.Generic.List[PSCustomObject]'
 
 $ScriptBlock = {
@@ -15,7 +15,7 @@ $ScriptBlock = {
     $ServicesProcesses = Get-Process -Name Harris* -ErrorAction SilentlyContinue
     [pscustomobject]@{
         DateTime = Get-Date
-        ServerName = HOSTNAME.EXE
+        ServerName = $env:COMPUTERNAME
         Ping = Test-Connection $CommandCenterHost -Count 1 | Select-Object * -ExpandProperty ResponseTime
         #IPaddress = [System.Net.Dns]::GetHostAddresses($Name) | Where-Object { $_.AddressFamily -eq 'InterNetwork' } | Select-Object -ExpandProperty IPAddressToString
         DSver = if (Test-Path 'C:\Users\Public\Desktop\ADC Device Server.lnk') {
@@ -48,10 +48,9 @@ $Iterations = 0
 do {  # Main cycle
     # Handle Jobs. Get results from all Jobs, find corresponding indexes in the List and rewrite them with the new data. Also remove and restart hanging jobs
     foreach ( $job in Get-Job ) {
-        while ( $job.HasMoreData ) {
             $Result = Receive-Job $job -ErrorAction SilentlyContinue
             $index = $List.FindIndex({ param($item) $item.ServerName -eq $Result.ServerName })  # Looking for an index of a row in the List corresponding to received result
-            if ($index -ne -1) { $List[$index] = $Result } }  # Update the List's row with the new data
+            if ($index -ne -1) { $List[$index] = $Result }  # Update the List's row with the new data
         
         $jobLasts = ((Get-Date) - $job.PSBeginTime).TotalMilliseconds
         if ( ( ($job.State -ne 'Running') -and ($jobLasts -ge 1000) ) -or ( $jobLasts -ge 5000 ) ) {  # if job is finished and is at least X ms old OR it is started long ago, starting it again with the same name
