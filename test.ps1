@@ -48,10 +48,13 @@ $Iterations = 0
 do {  # Main cycle
     # Handle Jobs. Get results from all Jobs, find corresponding indexes in the List and rewrite them with the new data. Also remove and restart hanging jobs
     foreach ( $job in Get-Job ) {
-        $Result = Receive-Job $job -ErrorAction SilentlyContinue
-        $index = $List.FindIndex({ param($item) $item.ServerName -eq $Result.ServerName })  # Looking for an index of a row in the List corresponding to received result
-        if ($index -ne -1) { $List[$index] = $Result }  # Update the List's row with the new data
-        if ( ((Get-Date) - $job.PSBeginTime).TotalSeconds -ge 3) {  # if job is started earlier than X ago, starting it again with the same name
+        while ( $job.HasMoreData ) {
+            $Result = Receive-Job $job -ErrorAction SilentlyContinue
+            $index = $List.FindIndex({ param($item) $item.ServerName -eq $Result.ServerName })  # Looking for an index of a row in the List corresponding to received result
+            if ($index -ne -1) { $List[$index] = $Result } }  # Update the List's row with the new data
+        
+        $jobLasts = ((Get-Date) - $job.PSBeginTime).TotalMilliseconds
+        if ( ( ($job.State -ne 'Running') -and ($jobLasts -ge 1000) ) -or ( $jobLasts -ge 5000 ) ) {  # if job is finished and is at least X ms old OR it is started long ago, starting it again with the same name
             Remove-Job -Name $job.Name -Force
             $job = Invoke-Command -ComputerName $job.Name -Credential $CredsDomain -ArgumentList $CommandCenterHost -AsJob -JobName $job.Name -ScriptBlock $ScriptBlock } }
     
@@ -65,7 +68,7 @@ do {  # Main cycle
         if ($index -ne -1) { $List[$index] = $Result } }
 
     # Redraw the table once in about 1 second
-    if ( $StopwatchDraw.ElapsedMilliseconds -ge 900 ) {
+    if ( $StopwatchDraw.ElapsedMilliseconds -ge 1000 ) {
         $StopwatchDraw.Restart()
         # Get info about current powershell process
         $Mem = "{0:n2}" -f [math]::round(($(Get-Process -Id $PID).WorkingSet64 | Measure-Object -Sum).Sum/1MB,2)
@@ -74,18 +77,16 @@ do {  # Main cycle
         
         Clear-Host
         "PID: {0}  Mem: {1:n2}  Avg: {2:n2}  Elapsed: {4}  SEmem: {5}  GoodCTC: {6}  Jobs: {7}" -f $PID, $Mem, $AvgMem, $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss:fff'), $Elapsed, $List[0].SEmem, $List.Where({$null -ne $_.Ping}).Count, (Get-Job).Count
-        $List | Select-Object *, @{Name='LastInfo'; Expression={$_.DateTime.ToString("HH:mm:ss")}} -ExcludeProperty DateTime, PSComputerName, RunspaceId | Format-Table
+        $List | Select-Object ServerName, Ping, DSver, DSmem, SEver, SEmem, @{Name='LastInfo'; Expression={$_.DateTime.ToString("HH:mm:ss")}} -ExcludeProperty DateTime, PSComputerName, RunspaceId | Format-Table
         $Iterations++ }
     
-    # Force remove all jobs and start them again once in an hour
-    if ( $StopwatchReset.Elapsed.Hours -ge 1 ) { 
+<#    # Force remove all jobs and start them again once in an hour
+    if ( $StopwatchReset.Elapsed.Hours -ge 1 ) {
         $StopwatchReset.Restart()
         Remove-Job * -Force -ErrorAction SilentlyContinue
         foreach ($server in $CTC) { 
             Invoke-Command -ComputerName $server -Credential $CredsDomain -ArgumentList $CommandCenterHost -AsJob -JobName $server -ScriptBlock $ScriptBlock | Out-Null } }
-
-    Start-Sleep -Milliseconds 200
-
+#>
     # Look for a key press
     if ($host.ui.RawUi.KeyAvailable) {
         $key=$host.ui.RawUI.ReadKey("NoEcho,IncludeKeyDown,IncludeKeyUp")
@@ -119,4 +120,6 @@ do {  # Main cycle
                         else {StartSE}
                 }
                 <#F1#>    112 {$infoCounter = 10}
-                <#F4#>    115 { } } } } } until ($key.VirtualKeyCode -eq 27)
+                <#F4#>    115 { } } } }
+
+    Start-Sleep -Milliseconds 333 } until ( $key.VirtualKeyCode -eq 27 )
