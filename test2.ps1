@@ -1,5 +1,7 @@
+Remove-Variable * -Force -ErrorAction SilentlyContinue
+Remove-Job * -Force -ErrorAction SilentlyContinue
 $CTC = @('WTL-ADC-CTC-01.wtldev.net', 'WTL-ADC-CTC-02.wtldev.net', 'WTL-ADC-CTC-03.wtldev.net', 'WTL-ADC-CTC-04.wtldev.net', 'WTL-ADC-CTC-05.wtldev.net', 'WTL-ADC-CTC-06.wtldev.net', 'WTL-ADC-CTC-07.wtldev.net', 'WTL-ADC-CTC-08.wtldev.net', 'WTL-ADC-CTC-09.wtldev.net', 'WTL-ADC-CTC-10.wtldev.net', 'WTL-ADC-CTC-11.wtldev.net', 'WTL-ADC-CTC-12.wtldev.net', 'WTL-ADC-CTC-13.wtldev.net', 'WTL-ADC-CTC-14.wtldev.net', 'WTL-ADC-CTC-15.wtldev.net', 'WTL-ADC-CTC-16.wtldev.net', 'WTL-ADC-CTC-17.wtldev.net', 'WTL-ADC-CTC-18.wtldev.net', 'WTL-ADC-CTC-19.wtldev.net', 'WTL-ADC-CTC-20.wtldev.net', 'WTL-ADC-CTC-21.wtldev.net', 'WTL-ADC-CTC-22.wtldev.net', 'WTL-ADC-CTC-23.wtldev.net', 'WTL-ADC-CTC-24.wtldev.net', 'WTL-ADC-CTC-25.wtldev.net', 'WTL-ADC-CTC-26.wtldev.net', 'WTL-ADC-CTC-27.wtldev.net', 'WTL-ADC-CTC-28.wtldev.net', 'WTL-ADC-CTC-29.wtldev.net', 'WTL-ADC-CTC-30.wtldev.net', 'WTL-ADC-CTC-31.wtldev.net', 'WTL-ADC-CTC-32.wtldev.net')
-#$CTC = @('WTL-ADC-CTC-01.wtldev.net', 'WTL-ADC-CTC-02.wtldev.net', 'WTL-ADC-CTC-32.wtldev.net')
+$CTC = @('WTL-ADC-CTC-31.wtldev.net', 'WTL-ADC-CTC-32.wtldev.net')
 # This variant uses one jobPing as a "ping all CTC" in background and another jobData as "get all data from all pingable CTC".
 # Second Job uses prepared ScriptBlock with one Invoke-Command for all CTC inside and constantly restarts when previous cycle is completed. 
 # The memory stays at about 150 MB per day. CPU is 2-3%.
@@ -7,6 +9,14 @@ $CTC = @('WTL-ADC-CTC-01.wtldev.net', 'WTL-ADC-CTC-02.wtldev.net', 'WTL-ADC-CTC-
 $CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
 $CommandCenterHost = $env:COMPUTERNAME
 $List = New-Object 'System.Collections.Generic.List[PSCustomObject]'
+
+# Prepare the List which will work as a Table
+foreach ($server in $CTC) {
+    $obj = [PSCustomObject]@{
+        ServerName = $server -replace '\.wtldev\.net$'
+        IPAddress = [System.Net.Dns]::GetHostAddresses($server) | Where-Object { $_.AddressFamily -eq 'InterNetwork' } | Select-Object -ExpandProperty IPAddressToString
+        Ping = $null }
+    $List.Add($obj) }
 
 $JobDataScript = {
     param ( $List, [pscredential]$CredsDomain, $CommandCenterHost )
@@ -34,14 +44,6 @@ $JobDataScript = {
     }
 }
 
-# Prepare the List which will work as a Table
-foreach ($server in $CTC) {
-    $obj = [PSCustomObject]@{
-        ServerName = $server -replace '\.wtldev\.net$'
-        IPAddress = [System.Net.Dns]::GetHostAddresses($server) | Where-Object { $_.AddressFamily -eq 'InterNetwork' } | Select-Object -ExpandProperty IPAddressToString
-        Ping = $null }
-    $List.Add($obj) }
-
 # Set and start stopwatches to show table once every second and to remove all jobs once in an hour. Also remember general start time to be able to get get Elapsed time. $Iterations is the iteration counter to calculate AVGmem
 $StopwatchDraw = [System.Diagnostics.Stopwatch]::new()
 $StopwatchDraw.Start()
@@ -51,34 +53,36 @@ $StartTime = Get-Date
 $Iterations = 0
 
 do {  # Main cycle
+    # Clear DSmem and SEmem for List Rows which have not been updated for a while
+    if ( $List | Where-Object { $_.DateTime } | Where-Object { $_.DateTime -lt (Get-Date).AddSeconds(-3) } ) {
+        'Came to List has objects which have not been updated for a while. Clearing corresponding values'
+        $List | Where-Object { $_.DateTime } | Where-Object { $_.DateTime -lt (Get-Date).AddSeconds(-3) } | ForEach-Object {
+            #$index = $List.FindIndex({ param($item) $item.ServerName -eq $_.ServerName })
+            #$List[$index].DSmem = $List[$index].SEmem = ''} #>
+            $_.DSmem = $_.SEmem = $_.DSver = $_.SEver = '' } }
+
     if ( $JobPing.HasMoreData ) {
+        'Came to JobPing has more data. Receiving results'
         $Results = Receive-Job $JobPing
+        'Received results. Writing Ping data into the List'
         foreach ($result in $Results) { $List.Where({ $result.Address -match $_.ServerName }).foreach({ $_.Ping=$result.ResponseTime }) } }
 
     if ( $JobData.HasMoreData ) {  # Extract data from the Job
+        'Came to JobData has more data. Receiving results'
         $Results = Receive-Job $JobData -ErrorAction SilentlyContinue | Select-Object * -ExcludeProperty PSComputerName, RunspaceId #| Sort-Object -Property Name | Format-Table
+        'Received results. Writing them into the List'
         foreach ($result in $Results) { #$List.Where({ $result.ServerName -match $_.ServerName }).foreach({ $_.DSver=$result.DSver;$_.DSmem=$result.DSmem;$_.SEver=$result.SEver;$_.SEmem=$result.SEmem }) }
             $index = $List.FindIndex({ param($item) $item.ServerName -eq $Result.ServerName })  # Looking for an index of a row in the List corresponding to received result
             if ($index -ne -1) { $List[$index] = $Result } } } # Update the List's row with the new data
 
     if ( $JobPing.State -eq 'Completed' -or $JobPing.State -eq 'Failed' -or -not $JobPing ) {
+        ''
         if ( $JobPing ) { Remove-Job $JobPing -Force -ErrorAction SilentlyContinue }
         $JobPing = Test-Connection $List.ServerName -Count 1 -AsJob }
 
     if ( $JobData.State -eq 'Completed' -or $JobData.State -eq 'Failed' -or -not $JobData -or $JobData.PSBeginTime -lt (Get-Date).AddSeconds(-2) ) {
         if ( $JobData ) { Remove-Job -Job $JobData -Force -ErrorAction SilentlyContinue }
         if ( $List.Where({$null -ne $_.Ping}) ) { $JobData = Start-Job -ScriptBlock $JobDataScript -ArgumentList $List, $CredsDomain, $CommandCenterHost } }
-
-<#    # Handle List Rows which have not been updated for a while (reset a row if not updated for more than X seconds). Create an intermediate object to avoid BadEnumeration error
-    $ObjectsToReset = $List | Where-Object { $_.DateTime } | Where-Object { $_.DateTime -lt (Get-Date).AddSeconds(-3) }
-    $ObjectsToReset | ForEach-Object {
-        $index = $List.FindIndex({ param($item) $item.ServerName -eq $_.ServerName })
-        $Result = [PSCustomObject]@{
-            ServerName = $_.ServerName
-            IPAddress = $_.IPAddress
-            Ping = $null
-            DateTime = $_.DateTime }
-        if ($index -ne -1) { $List[$index] = $Result } } #>
 
     # Redraw the table once in about 1 second
     if ( $StopwatchDraw.ElapsedMilliseconds -ge 1000 ) {
@@ -90,7 +94,7 @@ do {  # Main cycle
         
         #Clear-Host
         "PID: {0}  Mem: {1:n2}  Avg: {2:n2}  Elapsed: {4}  SEmem: {5}  GoodCTC: {6}  Jobs: {7}" -f $PID, $Mem, $AvgMem, $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss:fff'), $Elapsed, $List[0].SEmem, $List.Where({$null -ne $_.Ping}).Count, (Get-Job).Count
-        $List | Select-Object ServerName, IPAddress, Ping, DSver, DSmem, SEver, SEmem, @{Name='LastInfo'; Expression={$_.DateTime.ToString("HH:mm:ss")}} -ExcludeProperty DateTime, PSComputerName, RunspaceId | Format-Table
+        #$List | Select-Object @{Name='ServerName'; Expression={$_.ServerName -replace "^WTL-ADC-"}}, IPAddress, Ping, DSver, DSmem, SEver, SEmem, @{Name='LastInfo'; Expression={$_.DateTime.ToString("HH:mm:ss")}} -ExcludeProperty DateTime, PSComputerName, RunspaceId | Format-Table
         $Iterations++ }
     
     # Force remove all jobs and start them again once in X time
@@ -134,4 +138,4 @@ do {  # Main cycle
                 <#F1#>    112 {$infoCounter = 10}
                 <#F4#>    115 { } } } }
 
-    Start-Sleep -Milliseconds 333 } until ( $key.VirtualKeyCode -eq 27 )
+    Start-Sleep -Milliseconds 1333 } until ( $key.VirtualKeyCode -eq 27 )

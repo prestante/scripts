@@ -2,9 +2,9 @@
 $CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
 
 Invoke-Command -ComputerName $CTC -Credential $CredsDomain -ErrorAction SilentlyContinue {
-    Restart-Computer -Force
-    #Stop-Computer -Force
     $HostName = "$(HOSTNAME.EXE)"
     $Report = "$HostName`: Last BootUp at $(Get-CimInstance -ClassName Win32_OperatingSystem | Select-Object -ExpandProperty LastBootUpTime)"
     Write-Host "$Report" -f ( 1, 2, 3, 5, 6, 9, 10, 11, 13, 14 )[ ( $HostName.Split('-')[-1] ) % 10 ]  # Choose the color as a remainder of dividing the name number part by 10 (number of color variants)
+    Restart-Computer -Force
+    #Stop-Computer -Force
 }
