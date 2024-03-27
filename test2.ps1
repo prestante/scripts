@@ -1,10 +1,11 @@
 Remove-Variable * -Force -ErrorAction SilentlyContinue
 Remove-Job * -Force -ErrorAction SilentlyContinue
 $CTC = @('WTL-ADC-CTC-01.wtldev.net', 'WTL-ADC-CTC-02.wtldev.net', 'WTL-ADC-CTC-03.wtldev.net', 'WTL-ADC-CTC-04.wtldev.net', 'WTL-ADC-CTC-05.wtldev.net', 'WTL-ADC-CTC-06.wtldev.net', 'WTL-ADC-CTC-07.wtldev.net', 'WTL-ADC-CTC-08.wtldev.net', 'WTL-ADC-CTC-09.wtldev.net', 'WTL-ADC-CTC-10.wtldev.net', 'WTL-ADC-CTC-11.wtldev.net', 'WTL-ADC-CTC-12.wtldev.net', 'WTL-ADC-CTC-13.wtldev.net', 'WTL-ADC-CTC-14.wtldev.net', 'WTL-ADC-CTC-15.wtldev.net', 'WTL-ADC-CTC-16.wtldev.net', 'WTL-ADC-CTC-17.wtldev.net', 'WTL-ADC-CTC-18.wtldev.net', 'WTL-ADC-CTC-19.wtldev.net', 'WTL-ADC-CTC-20.wtldev.net', 'WTL-ADC-CTC-21.wtldev.net', 'WTL-ADC-CTC-22.wtldev.net', 'WTL-ADC-CTC-23.wtldev.net', 'WTL-ADC-CTC-24.wtldev.net', 'WTL-ADC-CTC-25.wtldev.net', 'WTL-ADC-CTC-26.wtldev.net', 'WTL-ADC-CTC-27.wtldev.net', 'WTL-ADC-CTC-28.wtldev.net', 'WTL-ADC-CTC-29.wtldev.net', 'WTL-ADC-CTC-30.wtldev.net', 'WTL-ADC-CTC-31.wtldev.net', 'WTL-ADC-CTC-32.wtldev.net')
-$CTC = @('WTL-ADC-CTC-31.wtldev.net', 'WTL-ADC-CTC-32.wtldev.net')
+#$CTC = @('WTL-ADC-CTC-31.wtldev.net', 'WTL-ADC-CTC-32.wtldev.net')
 # This variant uses one jobPing as a "ping all CTC" in background and another jobData as "get all data from all pingable CTC".
 # Second Job uses prepared ScriptBlock with one Invoke-Command for all CTC inside and constantly restarts when previous cycle is completed. 
-# The memory stays at about 150 MB per day. CPU is 2-3%.
+# The memory stays at about 150 MB per day. CPU is 2-3%. 
+# The problem is very high CPU usage on CTC VMs.
 
 $CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
 $CommandCenterHost = $env:COMPUTERNAME
@@ -53,37 +54,49 @@ $StartTime = Get-Date
 $Iterations = 0
 
 do {  # Main cycle
+    #'Starting the Jobs block'
     # Clear DSmem and SEmem for List Rows which have not been updated for a while
     if ( $List | Where-Object { $_.DateTime } | Where-Object { $_.DateTime -lt (Get-Date).AddSeconds(-3) } ) {
-        'Came to List has objects which have not been updated for a while. Clearing corresponding values'
+        #'Came to List has objects which have not been updated for a while. Clearing corresponding values'
         $List | Where-Object { $_.DateTime } | Where-Object { $_.DateTime -lt (Get-Date).AddSeconds(-3) } | ForEach-Object {
             #$index = $List.FindIndex({ param($item) $item.ServerName -eq $_.ServerName })
             #$List[$index].DSmem = $List[$index].SEmem = ''} #>
             $_.DSmem = $_.SEmem = $_.DSver = $_.SEver = '' } }
 
     if ( $JobPing.HasMoreData ) {
-        'Came to JobPing has more data. Receiving results'
+        #'Came to JobPing.HasMoreData. Receiving results'
         $Results = Receive-Job $JobPing
-        'Received results. Writing Ping data into the List'
+        #'Received results. Writing Ping data into the List'
         foreach ($result in $Results) { $List.Where({ $result.Address -match $_.ServerName }).foreach({ $_.Ping=$result.ResponseTime }) } }
 
     if ( $JobData.HasMoreData ) {  # Extract data from the Job
-        'Came to JobData has more data. Receiving results'
+        #'Came to JobData.HasMoreData. Receiving results'
         $Results = Receive-Job $JobData -ErrorAction SilentlyContinue | Select-Object * -ExcludeProperty PSComputerName, RunspaceId #| Sort-Object -Property Name | Format-Table
-        'Received results. Writing them into the List'
+        #'Received results. Writing them into the List'
         foreach ($result in $Results) { #$List.Where({ $result.ServerName -match $_.ServerName }).foreach({ $_.DSver=$result.DSver;$_.DSmem=$result.DSmem;$_.SEver=$result.SEver;$_.SEmem=$result.SEmem }) }
             $index = $List.FindIndex({ param($item) $item.ServerName -eq $Result.ServerName })  # Looking for an index of a row in the List corresponding to received result
             if ($index -ne -1) { $List[$index] = $Result } } } # Update the List's row with the new data
 
     if ( $JobPing.State -eq 'Completed' -or $JobPing.State -eq 'Failed' -or -not $JobPing ) {
-        ''
-        if ( $JobPing ) { Remove-Job $JobPing -Force -ErrorAction SilentlyContinue }
+        #'Came to JobPing is finished or absent'
+        #if ( $JobPing ) {
+        #    'JobPing exists. Removing JobPing'
+        #    Remove-Job $JobPing -Force -ErrorAction SilentlyContinue }
+        #'Creating new JobPing'
         $JobPing = Test-Connection $List.ServerName -Count 1 -AsJob }
 
-    if ( $JobData.State -eq 'Completed' -or $JobData.State -eq 'Failed' -or -not $JobData -or $JobData.PSBeginTime -lt (Get-Date).AddSeconds(-2) ) {
-        if ( $JobData ) { Remove-Job -Job $JobData -Force -ErrorAction SilentlyContinue }
-        if ( $List.Where({$null -ne $_.Ping}) ) { $JobData = Start-Job -ScriptBlock $JobDataScript -ArgumentList $List, $CredsDomain, $CommandCenterHost } }
+    if ( $JobData.State -ne 'Running' -or $JobData.PSBeginTime -lt (Get-Date).AddSeconds(-2) -or -not $JobData ) {
+    #if ( ( $JobData.State -ne 'Running' -and $JobData.PSBeginTime -lt (Get-Date).AddMilliseconds(10) ) -or $JobData.PSBeginTime -lt (Get-Date).AddSeconds(-2) -or -not $JobData ) {
+        #'Came to JobData is finished or absent'
+        #if ( $JobData ) {
+        #    'JobData exists. Removing JobData'
+        #    Remove-Job -Job $JobData -Force -ErrorAction SilentlyContinue }
+        #if ( $JobData ) { "JobData was lasting $((Get-Date) - $JobData.PSBeginTime | Select-Object -ExpandProperty TotalMilliseconds) ms" }
+        if ( $List.Where({$null -ne $_.Ping}) ) {
+            #'Creating new JobData'
+            $JobData = Start-Job -ScriptBlock $JobDataScript -ArgumentList $List, $CredsDomain, $CommandCenterHost } }
 
+    #'Done with the Jobs block'
     # Redraw the table once in about 1 second
     if ( $StopwatchDraw.ElapsedMilliseconds -ge 1000 ) {
         $StopwatchDraw.Restart()
@@ -92,9 +105,10 @@ do {  # Main cycle
         $AvgMem = [math]::round((($AvgMem * $Iterations + $Mem) / ($Iterations + 1)),2)
         $Elapsed = "{0:00}:{1:mm}:{1:ss}" -f [math]::Floor(((get-date) - $StartTime).TotalHours),((get-date) - $StartTime)
         
-        #Clear-Host
+        Clear-Host
+        #Get-Job | Select-Object Id, Name, State, HasMoreData, PSBeginTime, PSEndTime, Command | Format-Table
         "PID: {0}  Mem: {1:n2}  Avg: {2:n2}  Elapsed: {4}  SEmem: {5}  GoodCTC: {6}  Jobs: {7}" -f $PID, $Mem, $AvgMem, $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss:fff'), $Elapsed, $List[0].SEmem, $List.Where({$null -ne $_.Ping}).Count, (Get-Job).Count
-        #$List | Select-Object @{Name='ServerName'; Expression={$_.ServerName -replace "^WTL-ADC-"}}, IPAddress, Ping, DSver, DSmem, SEver, SEmem, @{Name='LastInfo'; Expression={$_.DateTime.ToString("HH:mm:ss")}} -ExcludeProperty DateTime, PSComputerName, RunspaceId | Format-Table
+        $List | Select-Object @{Name='ServerName'; Expression={$_.ServerName -replace "^WTL-ADC-"}}, IPAddress, Ping, DSver, DSmem, SEver, SEmem, @{Name='LastInfo'; Expression={$_.DateTime.ToString("HH:mm:ss")}} -ExcludeProperty DateTime, PSComputerName, RunspaceId | Format-Table
         $Iterations++ }
     
     # Force remove all jobs and start them again once in X time
@@ -102,6 +116,14 @@ do {  # Main cycle
         $StopwatchReset.Restart()
         Remove-Job * -Force -ErrorAction SilentlyContinue
         Remove-Variable JobPing, JobData } #>
+
+    # Remove all jobs with old PSBeginTime
+    #'Check if there are jobs to remove'
+    $JobsToRemove = Get-Job | Where-Object { ( $_.PSBeginTime -lt (Get-Date).AddSeconds(-30) -and $_.State -ne 'Running' ) -or ( $_.State -ne 'Running' -and ( -not $_.HasMoreData ) ) }  # old and finished or finished and empty
+    #$JobsToRemove | Select-Object Id, Name, State, HasMoreData, PSBeginTime, PSEndTime, Command | Format-Table
+    #'Removing'
+    $JobsToRemove | Remove-Job -Force
+    #'Removed'
 
     # Look for a key press
     if ($host.ui.RawUi.KeyAvailable) {
@@ -138,4 +160,4 @@ do {  # Main cycle
                 <#F1#>    112 {$infoCounter = 10}
                 <#F4#>    115 { } } } }
 
-    Start-Sleep -Milliseconds 1333 } until ( $key.VirtualKeyCode -eq 27 )
+    Start-Sleep -Milliseconds 333 } until ( $key.VirtualKeyCode -eq 27 )

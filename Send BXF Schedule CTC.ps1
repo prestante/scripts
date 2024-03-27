@@ -8,7 +8,7 @@ $XmlFile = '\\wtlnas1\public\ADC\PS\resources\xml\3877.xml'
 
 #Setting configuration and Getting list of ListNames from all Integration Services config files
 $Url = @(foreach ($CTCip in $CTC) {'http://' + $CTCip + ':1985/SendMessage?destination_name=traffic'})
-$servers = 32
+$servers = 25
 $SSN = 0 #SSN is Starting Server Number. 0 means starting from first $CTC pc.
 $lists = 1
 $interval = 40 #OAT interval in seconds between Lists

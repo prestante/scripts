@@ -17,3 +17,4 @@ $results = Invoke-Command $CTC -Credential $Creds {
 }
 
 $results | select Computer,DisplayName,DisplayVersion | Sort-Object Computer,DisplayName | ft
+$classes = Get-WmiObject -List *
