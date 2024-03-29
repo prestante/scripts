@@ -1,83 +1,67 @@
-﻿Param(
-#[array]
-#[Parameter(ValueFromRemainingArguments=$true)]
-[string]$Server)
-if (!$Server) {$Server = "ADCSERVICES-3"}
+﻿Param([string]$Server)
+if (!$Server) {$Server = "WTL-HPY-345-6"}
 
-#$CTC = @('WTL-HP3B8-VDS1.WTLDEV.NET','WTL-HP3B8-VDS2.WTLDEV.NET','WTL-HP3B8-VDS3.WTLDEV.NET','WTL-HP3B8-VDS4.WTLDEV.NET','WTL-HP3B8-VDS5.WTLDEV.NET','WTL-HP3B8-VDS6.WTLDEV.NET','WTL-HP3B8-VDS7.WTLDEV.NET','WTL-HP3B8-VDS8.WTLDEV.NET','WTL-HP3B8-VDS9.WTLDEV.NET','WTL-HP3B8-VDS10.WTLDEV.NET','WTL-HP3B9-VDS1.WTLDEV.NET','WTL-HP3B9-VDS2.WTLDEV.NET','WTL-HP3B9-VDS3.WTLDEV.NET','WTL-HP3B9-VDS4.WTLDEV.NET','WTL-HP3B9-VDS5.WTLDEV.NET','WTL-HP3B9-VDS6.WTLDEV.NET','WTL-HP3B9-VDS7.WTLDEV.NET','WTL-HP3B9-VDS8.WTLDEV.NET','WTL-HP3B9-VDS9.WTLDEV.NET','WTL-HP3B9-VDS10.WTLDEV.NET')
-#$CTC = @('adc-ctc01.tecomgroup.ru','adc-ctc02.tecomgroup.ru','adc-ctc03.tecomgroup.ru','adc-ctc04.tecomgroup.ru','adc-ctc05.tecomgroup.ru','adc-ctc06.tecomgroup.ru','adc-ctc07.tecomgroup.ru','adc-ctc08.tecomgroup.ru','adc-ctc09.tecomgroup.ru','adc-ctc10.tecomgroup.ru','adc-ctc11.tecomgroup.ru','adc-ctc12.tecomgroup.ru','adc-ctc13.tecomgroup.ru','adc-ctc14.tecomgroup.ru','adc-ctc15.tecomgroup.ru','adc-ctc16.tecomgroup.ru','adc-ctc17.tecomgroup.ru','adc-ctc18.tecomgroup.ru','adc-ctc19.tecomgroup.ru','adc-ctc20.tecomgroup.ru','adc-ctc21.tecomgroup.ru','adc-ctc22.tecomgroup.ru','adc-ctc23.tecomgroup.ru','adc-ctc24.tecomgroup.ru')
-$CTC = @('adc-ctc24.tecomgroup.ru')
+$CTC = @('WTL-ADC-CTC-01.wtldev.net', 'WTL-ADC-CTC-02.wtldev.net', 'WTL-ADC-CTC-03.wtldev.net', 'WTL-ADC-CTC-04.wtldev.net', 'WTL-ADC-CTC-05.wtldev.net', 'WTL-ADC-CTC-06.wtldev.net', 'WTL-ADC-CTC-07.wtldev.net', 'WTL-ADC-CTC-08.wtldev.net', 'WTL-ADC-CTC-09.wtldev.net', 'WTL-ADC-CTC-10.wtldev.net', 'WTL-ADC-CTC-11.wtldev.net', 'WTL-ADC-CTC-12.wtldev.net', 'WTL-ADC-CTC-13.wtldev.net', 'WTL-ADC-CTC-14.wtldev.net', 'WTL-ADC-CTC-15.wtldev.net', 'WTL-ADC-CTC-16.wtldev.net', 'WTL-ADC-CTC-17.wtldev.net', 'WTL-ADC-CTC-18.wtldev.net', 'WTL-ADC-CTC-19.wtldev.net', 'WTL-ADC-CTC-20.wtldev.net', 'WTL-ADC-CTC-21.wtldev.net', 'WTL-ADC-CTC-22.wtldev.net', 'WTL-ADC-CTC-23.wtldev.net', 'WTL-ADC-CTC-24.wtldev.net', 'WTL-ADC-CTC-25.wtldev.net', 'WTL-ADC-CTC-26.wtldev.net', 'WTL-ADC-CTC-27.wtldev.net', 'WTL-ADC-CTC-28.wtldev.net', 'WTL-ADC-CTC-29.wtldev.net', 'WTL-ADC-CTC-30.wtldev.net', 'WTL-ADC-CTC-31.wtldev.net', 'WTL-ADC-CTC-32.wtldev.net')
+#$CTC = @('WTL-ADC-CTC-30.wtldev.net', 'WTL-ADC-CTC-31.wtldev.net', 'WTL-ADC-CTC-32.wtldev.net')
+#$CTC = @('WTL-ADC-CTC-01.wtldev.net')
 
-$Creds = [System.Management.Automation.PSCredential]::new('local\Administrator',(ConvertTo-SecureString -AsPlainText 'Tecom_1!' -Force))
+$EndTime = (Get-Date).AddSeconds(600)  # Set the number of seconds to continue querying. For some reason we are able to interrupt it by stopping the script...
+$Probability = 1  # Set the chance (in percents) of the cycle to execute the query. Normally there are about 10 cycles per second per CTC. So if we set it to 10, each CTC will query in average opce a second
 
-function GD {Get-Date -Format 'yyyy-MM-dd HH:mm:ss - '}
-Write-Host "$(GD)Updating SQL records on $Server" -f Yellow
+$CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
 
-#### CAREFUL! Do-cycle inside Invoke-Command is endless whatever you do!!! Only PC restart can help #####################
-sleep 1
-do {
-    Invoke-Command $CTC -Credential $Creds -ArgumentList $Server {
-        param ($Server)
+Write-Host "Updating SQL records on $Server until $EndTime" -f Yellow
 
-        #$Server = "wtl-hpx-325-n01.wtldev.net"
-        $BaseName = "ASDB"
-        $BaseLogin = "LouthDB"
-        $BasePassw = "LouthDB"
-        $connection = New-Object -com "ADODB.Connection"
-        $ConnectionString = "Provider=SQLOLEDB.1;
-                                Data Source=$Server;
-                                Initial Catalog=$BaseName;
-                                User ID=$BaseLogin;
-                                Password=$BasePassw;"
+Invoke-Command -ComputerName $CTC -Credential $CredsDomain -ArgumentList $Server, $EndTime, $Probability {
+    param ( $Server, $EndTime, $Probability )
 
-        function GD {Get-Date -Format 'yyyy-MM-dd HH:mm:ss - '}
-        function get-decT {
-            $tt = Get-Date -Hour (Get-Random(24)) -Minute (Get-Random(60)) -Second (Get-Random(60))
-            if (($tt.Second -eq 0) -and ($tt.Minute -ne 10)) { $decT = [int]("0x{0:HHmmss28}" -f ($tt.AddSeconds(-1))) }
-            else { $decT = [int]("0x{0:HHmmss00}" -f ($tt)) }
-            return $decT
-        }
-        <#function upd-query {
-            $Global:n = 1 + (Get-Random 999)
-            $Global:id = "Demo0{0:d3}" -f $n
-            $dateTime = "{0:HH}:{0:mm}:{0:ss}" -f (Get-Date)
-            $rndTC1 = (get-decT) ; $rndTC2 = (get-decT)
-            $Global:query = "UPDATE [ASDB].[dbo].[ASDB] SET Title = '$dateTime', StartOfMessage = 0, Duration = 4096 WHERE Identifier = '$id'"
-        }#>
-        function upd-query {
-            $Global:n = 1 + (Get-Random 4)
-            $Global:id = "SWTCH7"
-            $dateTime = "{0:HH}:{0:mm}:{0:ss}" -f (Get-Date)
-            $rndTC1 = (get-decT) ; $rndTC2 = (get-decT)
-            $Global:query = "UPDATE [ASDB].[dbo].[ASSEG] SET Title = '$dateTime' WHERE Identifier = '$id' and SegNum = $n"
-        }
+    $HostName = $env:COMPUTERNAME
 
-        #if (Get-Random 2) { #query will be sent with probability of n-1/n)
-            $interval = 200000 #ms
-            Start-Sleep -Milliseconds (Get-Random $interval)
+    $BaseName = "ASDB"
+    $BaseLogin = "LouthDB"
+    $BasePassw = "LouthDB"
+    $connection = New-Object -com "ADODB.Connection"
+    $ConnectionString = "Provider=SQLOLEDB.1;
+                            Data Source=$Server;
+                            Initial Catalog=$BaseName;
+                            User ID=$BaseLogin;
+                            Password=$BasePassw;"
+
+    function GD {Get-Date -Format 'yyyy-MM-dd HH:mm:ss:fff - '}
+    function get-decT {
+        $tt = Get-Date -Hour (Get-Random(24)) -Minute (Get-Random(60)) -Second (Get-Random(60))
+        if (($tt.Second -eq 0) -and ($tt.Minute -ne 10)) { $decT = [int]("0x{0:HHmmss28}" -f ($tt.AddSeconds(-1))) }
+        else { $decT = [int]("0x{0:HHmmss00}" -f ($tt)) }
+        return $decT
+    }
+    function upd-query {
+        $Global:n = 1 + (Get-Random 999)
+        $Global:id = "Demo0{0:d3}" -f $n
+        $dateTime = "{0:HH}:{0:mm}:{0:ss}" -f (Get-Date)
+        $rndTC1 = (get-decT) ; $rndTC2 = (get-decT)
+        $Global:query = "UPDATE [ASDB].[dbo].[ASDB] SET Title = '$dateTime', StartOfMessage = 0, Duration = 4096 WHERE Identifier = '$id'"
+    }
+    <#function upd-query {
+        $Global:n = 1 + (Get-Random 4)
+        $Global:id = "SWTCH7"
+        $dateTime = "{0:HH}:{0:mm}:{0:ss}" -f (Get-Date)
+        $rndTC1 = (get-decT) ; $rndTC2 = (get-decT)
+        $Global:query = "UPDATE [ASDB].[dbo].[ASSEG] SET Title = '$dateTime' WHERE Identifier = '$id' and SegNum = $n"
+    }#>
+
+    do {
+        if ( ( Get-Random 100000 ) -lt ( $Probability * 1000 ) ) {  # using thousands to be more precise on low percent values
             upd-query
 
             $connection.Open($ConnectionString)
-            Start-Sleep -Milliseconds (Get-Random 200)
             $time = Get-Date
             $connection.Execute($query) | Out-Null
-            $spent = $time - (Get-Date)
-            #$log_string = "$(GD)UPDATE '$id' on $($Server -replace '\.\w*?\.\w*?$') from $env:COMPUTERNAME took $([math]::Round(((get-date) -$time).TotalMilliseconds)) ms"
-            $log_string = "$(GD)UPDATE '$id' Seg $n on $($Server -replace '\.\w*?\.\w*?$') from $env:COMPUTERNAME took $([math]::Round(((get-date) -$time).TotalMilliseconds)) ms"
-            Write-Host $log_string -f Green
+            $log_string = "$HostName`: $(GD)UPDATE '$id' on $($Server -replace '\.\w*?\.\w*?$') from $env:COMPUTERNAME took $([math]::Round(((get-date) -$time).TotalMilliseconds)) ms"
+            #$log_string = "$HostName`: $(GD)UPDATE '$id' Seg $n on $($Server -replace '\.\w*?\.\w*?$') from $env:COMPUTERNAME took $([math]::Round(((get-date) -$time).TotalMilliseconds)) ms"
+            Write-Host "$log_string" -f ( 1, 2, 3, 5, 6, 9, 10, 11, 13, 14 )[ ( $HostName.Split('-')[-1] ) % 10 ]  # Choose the color as a remainder of dividing the name number part by 10 (number of color variants)
             $connection.Close()
-            Start-Sleep -Milliseconds (Get-Random $interval)
-        #}
-    }
-
-
-    if ($host.ui.RawUi.KeyAvailable) {
-        $key=$host.ui.RawUI.ReadKey("NoEcho,IncludeKeyDown,IncludeKeyUp")
-        $Host.UI.RawUI.FlushInputBuffer()
-            switch ($key.VirtualKeyCode) {
-                <#Space#> 32 {}
-                <#Esc#> 27 {return}
-            } #end switch
-    }
-
-} until ($key.VirtualKeyCode -eq 27)
+        }
+        Start-Sleep -Milliseconds 100
+    } until ( (Get-Date) -ge $EndTime )
+}
+Write-Host "Done"
