@@ -5,6 +5,7 @@
 #$CredsLocal = [System.Management.Automation.PSCredential]::new('local\imagineLocal',(ConvertTo-SecureString -AsPlainText $env:imgLocPW -Force))
 $CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
 
+Write-Host "Stopping ADC Services on all CTC. Please wait..."
 Invoke-Command -ComputerName $CTC -Credential $CredsDomain {
     #Stop-Service -Name ADC* -NoWait
     "$($env:COMPUTERNAME): Disabling ADC Services"
@@ -19,3 +20,6 @@ Invoke-Command -ComputerName $CTC -Credential $CredsDomain {
     Get-Service -Name 'ADC*' | Set-Service -StartupType Manual
     Start-Sleep 1
 } | Out-Null
+Write-Host "Done"
+
+if ( $Host.Name -notmatch 'Visual Studio') { Read-Host }

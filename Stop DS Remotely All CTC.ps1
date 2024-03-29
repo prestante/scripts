@@ -5,8 +5,9 @@
 #$CredsLocal = [System.Management.Automation.PSCredential]::new('local\imagineLocal',(ConvertTo-SecureString -AsPlainText $env:imgLocPW -Force))
 $CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
 
+Write-Host "Stopping ADC1000NT on all CTC. Please wait..."
 Invoke-Command -ComputerName $CTC -Credential $CredsDomain {
-    $Report = $HostName = HOSTNAME.EXE
+    $Report = $HostName = $env:COMPUTERNAME
     if ( Get-Process -Name ADC1000NT -ErrorAction SilentlyContinue ) {
         $Report += ": Stopping ADC1000NT..."
         Stop-Process -Name ADC1000NT -ErrorAction SilentlyContinue -Force
@@ -14,6 +15,6 @@ Invoke-Command -ComputerName $CTC -Credential $CredsDomain {
     }
         Write-Host "$Report" -f ( 1, 2, 3, 5, 6, 9, 10, 11, 13, 14 )[ ( $HostName.Split('-')[-1] ) % 10 ]
 }  | Out-Null
-
+Write-Host "Done"
 
 if ( $Host.Name -notmatch 'Visual Studio') { Read-Host }
