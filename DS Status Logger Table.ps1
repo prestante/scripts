@@ -1,282 +1,108 @@
-﻿$CTC = @('WTL-ADC-CTC-01.wtldev.net', 'WTL-ADC-CTC-02.wtldev.net', 'WTL-ADC-CTC-03.wtldev.net', 'WTL-ADC-CTC-04.wtldev.net', 'WTL-ADC-CTC-05.wtldev.net', 'WTL-ADC-CTC-06.wtldev.net', 'WTL-ADC-CTC-07.wtldev.net', 'WTL-ADC-CTC-08.wtldev.net', 'WTL-ADC-CTC-09.wtldev.net', 'WTL-ADC-CTC-10.wtldev.net', 'WTL-ADC-CTC-11.wtldev.net', 'WTL-ADC-CTC-12.wtldev.net', 'WTL-ADC-CTC-13.wtldev.net', 'WTL-ADC-CTC-14.wtldev.net', 'WTL-ADC-CTC-15.wtldev.net', 'WTL-ADC-CTC-16.wtldev.net', 'WTL-ADC-CTC-17.wtldev.net', 'WTL-ADC-CTC-18.wtldev.net', 'WTL-ADC-CTC-19.wtldev.net', 'WTL-ADC-CTC-20.wtldev.net', 'WTL-ADC-CTC-21.wtldev.net', 'WTL-ADC-CTC-22.wtldev.net', 'WTL-ADC-CTC-23.wtldev.net', 'WTL-ADC-CTC-24.wtldev.net', 'WTL-ADC-CTC-25.wtldev.net', 'WTL-ADC-CTC-26.wtldev.net', 'WTL-ADC-CTC-27.wtldev.net', 'WTL-ADC-CTC-28.wtldev.net', 'WTL-ADC-CTC-29.wtldev.net', 'WTL-ADC-CTC-30.wtldev.net', 'WTL-ADC-CTC-31.wtldev.net', 'WTL-ADC-CTC-32.wtldev.net')
-$CTC = @('WTL-ADC-CTC-01.wtldev.net', 'WTL-ADC-CTC-02.wtldev.net', 'WTL-ADC-CTC-03.wtldev.net', 'WTL-ADC-CTC-04.wtldev.net')
+﻿Remove-Variable * -Force -ErrorAction SilentlyContinue
+Remove-Job * -Force -ErrorAction SilentlyContinue
+$CTC = @('WTL-ADC-CTC-01.wtldev.net', 'WTL-ADC-CTC-02.wtldev.net', 'WTL-ADC-CTC-03.wtldev.net', 'WTL-ADC-CTC-04.wtldev.net', 'WTL-ADC-CTC-05.wtldev.net', 'WTL-ADC-CTC-06.wtldev.net', 'WTL-ADC-CTC-07.wtldev.net', 'WTL-ADC-CTC-08.wtldev.net', 'WTL-ADC-CTC-09.wtldev.net', 'WTL-ADC-CTC-10.wtldev.net', 'WTL-ADC-CTC-11.wtldev.net', 'WTL-ADC-CTC-12.wtldev.net', 'WTL-ADC-CTC-13.wtldev.net', 'WTL-ADC-CTC-14.wtldev.net', 'WTL-ADC-CTC-15.wtldev.net', 'WTL-ADC-CTC-16.wtldev.net', 'WTL-ADC-CTC-17.wtldev.net', 'WTL-ADC-CTC-18.wtldev.net', 'WTL-ADC-CTC-19.wtldev.net', 'WTL-ADC-CTC-20.wtldev.net', 'WTL-ADC-CTC-21.wtldev.net', 'WTL-ADC-CTC-22.wtldev.net', 'WTL-ADC-CTC-23.wtldev.net', 'WTL-ADC-CTC-24.wtldev.net', 'WTL-ADC-CTC-25.wtldev.net', 'WTL-ADC-CTC-26.wtldev.net', 'WTL-ADC-CTC-27.wtldev.net', 'WTL-ADC-CTC-28.wtldev.net', 'WTL-ADC-CTC-29.wtldev.net', 'WTL-ADC-CTC-30.wtldev.net', 'WTL-ADC-CTC-31.wtldev.net', 'WTL-ADC-CTC-32.wtldev.net')
+#$CTC = @('WTL-ADC-CTC-30.wtldev.net', 'WTL-ADC-CTC-31.wtldev.net', 'WTL-ADC-CTC-32.wtldev.net')
+#$CTC = @('WTL-ADC-CTC-32.wtldev.net')
+# The idea is to gather DS/SE versions by the job once in like a minute. And to receive CPU and MEM by fast WMI provider directly.
 
-#$CredsLocal = [System.Management.Automation.PSCredential]::new('local\imagineLocal',(ConvertTo-SecureString -AsPlainText $env:imgLocPW -Force))
 $CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
-$PSSessionOption.IdleTimeout = New-TimeSpan -days 24 -Seconds 0
-
-$HS = [hashtable]::Synchronized(@{})
-[System.Collections.Generic.List[PSObject]]$HS.results = @()
-
-$poolPing = [RunspaceFactory]::CreateRunspacePool(1, [int]$env:NUMBER_OF_PROCESSORS+1)
-$poolPing.ApartmentState = "MTA"
-$poolPing.ThreadOptions = "ReuseThread"
-$poolPing.Open()
-$runspacesPing = @()
-
-$scriptblockPing = {
-    Param ([hashtable]$HS, [string]$server)
-    $test = Test-Connection -ComputerName $server -Count 1 -ea SilentlyContinue
-    $ping = $test.ResponseTime
-    if ($test) {
-        #$all = [pscustomobject]@{Server=$server;Ping=$ping;DSver='error'}
-        try {
-            $all = Invoke-Command -ComputerName $server -ArgumentList $server,$ping -Credential $CredsDomain -ScriptBlock {
-                param ($server,$ping)
-                [pscustomobject]@{
-                    Server = $server
-                    Ping = $ping
-                    DSver = if (Test-Path 'C:\Users\Public\Desktop\ADC Device Server.lnk') {
-                        $sh = New-Object -ComObject WScript.Shell
-                        ((Get-ChildItem $sh.CreateShortcut('C:\Users\Public\Desktop\ADC Device Server.lnk').Targetpath).VersionInfo).ProductVersion
-                    } else {''}
-                    DSmem = if ((Get-Process -Name ADC1000NT -ea SilentlyContinue).Count) {
-                        "{0:n2}" -f [math]::round(((Get-Process -Name ADC1000NT -ea SilentlyContinue).WorkingSet64 | Measure-Object -Sum).Sum/1MB,2)
-                    } else {''}
-                    SEver = (Get-ItemProperty HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object {$_.DisplayName -eq 'ADC Services'} | Select-Object -Property DisplayVersion).DisplayVersion
-                    SEmem = if ((Get-Process -Name Harris* -ea SilentlyContinue).Count) {
-                        "{0:n2}" -f [math]::Round((((Get-Process -Name Harris*).WorkingSet64 | Measure-Object -Sum).Sum/1MB),2)
-                    } else {''}
-                    PLmem = if ((Get-Process -Name Playlist -ea SilentlyContinue).Count) {
-                        "{0:n2}" -f [math]::Round((((Get-Process -Name Playlist).WorkingSet64 | Measure-Object -Sum).Sum/1MB),2)
-                    } else {''}
-                    CTmem = if ((Get-Process -Name ADC1000NTCFG -ea SilentlyContinue).Count) {
-                        "{0:n2}" -f [math]::Round((((Get-Process -Name ADC1000NTCFG -ea SilentlyContinue).WorkingSet64 | Measure-Object -Sum).Sum/1MB),2)
-                    } else {''}
-                }
-            } -ErrorAction Stop
-        } catch {$all = [pscustomobject]@{Server=$server;Ping=$ping;DSver='error'}}
-    } else {$all = [pscustomobject]@{Server=$server}}
-    $HS.results.Add($all)
-    #$HS.results.Add([PSObject]@{'Server'=$server;'Ping'=$ping;'DSver'=$DSver;'DSmem'=$DSmem;'SEver'=$SEver;'SEmem'=$SEmem;'PLmem'=$PLmem;'CTmem'=$CTmem})
-}
-
-function Ping {
-    $i = 0
-    foreach ($server in $CTC) {
-        $runspace = [PowerShell]::Create()
-        [void]$runspace.AddScript($scriptblockPing).AddArgument($HS).AddArgument($server)
-        $runspace.RunspacePool = $poolPing
-        $Global:runspacesPing += [PSCustomObject]@{Num=$i++; Pipe=$runspace; Status=$runspace.BeginInvoke()}
-    }
-}
-function StopDS ($DS) {
-    if (($Null -ne $DS) -and ($DS -ne '')) {
-        if (!(Test-Connection -ComputerName $CTC[$DS-1] -Count 1 -Quiet)) {return}
-        $Comp = $CTC[$DS-1] ; "Stopping DS on CTC-{0:d2}" -f $DS
-    }
-    else {$Comp=@() ; $table.Where({$_.Ping -ne [DBNull]::Value}).foreach({$Comp+=$_.Name}) ; "Stopping DS on all CTC"}
-    Invoke-Command -ComputerName $Comp -Credential $CredsDomain {Stop-Process -name ADC1000NT} -ea SilentlyContinue
-    Start-Sleep -Seconds 1
-}
-function StartDS ($DS) {
-    $PSSessionOption.IdleTimeout = New-TimeSpan -days 24 -Seconds 0
-    if (($Null -ne $DS) -and ($DS -ne '')) {
-        if (!(Test-Connection -ComputerName $CTC[$DS-1] -Count 1 -Quiet)) {return}
-        $Comp = $CTC[$DS-1] ; "Starting DS on CTC-{0:d2}" -f $DS
-    }
-    #else {$Comp=@() ; $table.Where({($_.Ping -ne [DBNull]::Value) -and ([int]$_.No -le 14)}).foreach({$Comp+=$_.Name}) ; "Starting DS on all (14) CTC"}
-    else {$Comp=@() ; $table.Where({($_.Ping -ne [DBNull]::Value)}).foreach({$Comp+=$_.Name}) ; "Starting DS on all CTC"}
-    Invoke-Command -ComputerName $Comp -InDisconnectedSession -Credential $CredsDomain {
-        Start-Process 'C:\server\ADC1000NT.exe' -ArgumentList ((HOSTNAME.EXE) -replace 'WTL-ADC-')
-    }  | Out-Null
-    Start-Sleep -Seconds 1
-}
-function StopCT ($CT) {
-    if (($Null -ne $CT) -and ($CT -ne '')) {
-        if (!(Test-Connection -ComputerName $CTC[$CT-1] -Count 1 -Quiet)) {return}
-        $Comp = $CTC[$CT-1] ; "Stopping CT on CTC{0:d2}" -f $CT
-    }
-    else {$Comp=@() ; $table.Where({$_.Ping -ne [DBNull]::Value}).foreach({$Comp+=$_.Name}) ; "Stopping CT on all CTC"}
-    Invoke-Command -ComputerName $Comp -Credential $CredsDomain {Stop-Process  -name ADC1000NTCFG} -ea SilentlyContinue
-    Start-Sleep -Seconds 1
-}
-function StartCT ($CT) {
-    $PSSessionOption.IdleTimeout = New-TimeSpan -days 24 -Seconds 0
-    if (($Null -ne $CT) -and ($CT -ne '')) {
-        if (!(Test-Connection -ComputerName $CTC[$CT-1] -Count 1 -Quiet)) {return}
-        $Comp = $CTC[$CT-1] ; "Starting CT on CTC{0:d2}" -f $CT
-    }
-    #else {$Comp=@() ; $table.Where({($_.Ping -ne [DBNull]::Value) -and ([int]$_.No -le 14)}).foreach({$Comp+=$_.Name}) ; "Starting CT on all (14) CTC"}
-    else {$Comp=@() ; $table.Where({($_.Ping -ne [DBNull]::Value)}).foreach({$Comp+=$_.Name}) ; "Starting CT on all CTC"}
-    Invoke-Command -ComputerName $Comp -InDisconnectedSession -Credential $CredsDomain {
-        Start-Process 'C:\Users\Public\Desktop\ADC Config Tool.lnk'
-    }  | Out-Null
-    Start-Sleep -Seconds 1
-}
-function StopPL {
-    $Comp=@() ; $table.Where({$_.Ping -ne [DBNull]::Value}).foreach({$Comp+=$_.Name}) ; "Stopping PL on all CTC"
-    Invoke-Command -ComputerName $Comp -Credential $CredsDomain {Stop-Process -name Playlist -Force} -ea SilentlyContinue
-    Start-Sleep -Seconds 1
-}
-function StartPL {
-    $PSSessionOption.IdleTimeout = New-TimeSpan -days 24 -Seconds 0
-    $Comp=@() ; $table.Where({$_.Ping -ne [DBNull]::Value}).foreach({$Comp+=$_.Name}) ; "Starting PL on all CTC"
-    Invoke-Command -ComputerName $Comp -InDisconnectedSession -Credential $CredsDomain {
-        if (Test-Path 'C:\Users\Public\Desktop\Playlist.lnk') {Start-Process 'C:\Users\Public\Desktop\Playlist.lnk'}
-    }  | Out-Null
-    Start-Sleep -Seconds 1
-}
-function StopSE {
-    $Comp=@() ; $table.Where({$_.Ping -ne [DBNull]::Value}).foreach({$Comp+=$_.Name}) ; "Stopping SE on all CTC"
-    Invoke-Command -ComputerName $Comp -Credential $CredsDomain {
-        Get-Service -Name 'ADC*' | Set-Service -StartupType Disabled
-        Start-Sleep 1
-        Get-Process -Name 'Harris.Automation.ADC.Services*' | Stop-Process -Force -ErrorAction SilentlyContinue
-        Start-Sleep 1
-        Get-Service -Name 'ADC*' | Set-Service -StartupType Manual
-    } -ea SilentlyContinue
-    Start-Sleep -Seconds 1
-}
-function StartSE {
-    $PSSessionOption.IdleTimeout = New-TimeSpan -days 24 -Seconds 0
-    $Comp=@() ; $table.Where({$_.Ping -ne [DBNull]::Value}).foreach({$Comp+=$_.Name}) ; "Starting SE on all CTC"
-    Invoke-Command -ComputerName $Comp -Credential $CredsDomain {
-        #Get-Service -Name 'ADCSecurityService', 'ADCDataService', 'ADCMaterialService', 'ADCAggregationService' | Start-Service
-        [System.Collections.Generic.List[PSObject]]$services = Get-Service -Name 'ADC*' | Where-Object {$_.DisplayName -notmatch 'Aggregation'}
-        [System.Collections.Generic.List[PSObject]]$servicesInOrder = @()
-        $services | Where-Object {$_.DisplayName -match 'Data'} | ForEach-Object {$servicesInOrder.Add($_)}
-        $services | Where-Object {$_.DisplayName -match 'Timecode'} | ForEach-Object {$servicesInOrder.Add($_)}
-        $services | Where-Object {$_.DisplayName -match 'AsRun'} | ForEach-Object {$servicesInOrder.Add($_)}
-        $services | Where-Object {$_.DisplayName -match 'Device'} | ForEach-Object {$servicesInOrder.Add($_)}
-        $services | Where-Object {$_.DisplayName -match 'List'} | ForEach-Object {$servicesInOrder.Add($_)}
-        $services | Where-Object {$_.DisplayName -match 'Error'} | ForEach-Object {$servicesInOrder.Add($_)}
-        $services | 
-         Where-Object {$_.DisplayName -notmatch 'Data'} |
-         Where-Object {$_.DisplayName -notmatch 'Timecode'} |
-         Where-Object {$_.DisplayName -notmatch 'AsRun'} | 
-         Where-Object {$_.DisplayName -notmatch 'Device'} | 
-         Where-Object {$_.DisplayName -notmatch 'List'} | 
-         Where-Object {$_.DisplayName -notmatch 'Error'} | 
-         Where-Object {$_.DisplayName -notmatch 'Synchro'} | 
-         Where-Object {$_.DisplayName -notmatch 'Integra'} | 
-         Where-Object {$_.DisplayName -notmatch 'Manager'} | 
-        ForEach-Object {$servicesInOrder.Add($_)}
-        $services | Where-Object {$_.DisplayName -match 'Integra'} | ForEach-Object {$servicesInOrder.Add($_)}
-        $services | Where-Object {$_.DisplayName -match 'Synchro'} | ForEach-Object {$servicesInOrder.Add($_)}
-        $services | Where-Object {$_.DisplayName -match 'Manager'} | ForEach-Object {$servicesInOrder.Add($_)}
-
-        $servicesInOrder | ForEach-Object {
-            #Write-Host "$(GD)Starting $($_.name -replace '(ADC)(.*)(Service)','$1 $2 $3')" -b Black -f Yellow
-            Start-Service $_.name -WarningAction SilentlyContinue
-        }
-    }  | Out-Null
-    Start-Sleep -Seconds 1
-}
-function WatchRunspaces {
-    $hash = @{}
-    for ($i = 0 ; $i -lt $runspacesPing.Count ; $i++) {
-        $hash.Add($runspacesPing.Num[$i],$runspacesPing.Status.IsCompleted[$i])
-    }
-    $string = $hash.GetEnumerator() | Sort-Object -Property Name | Out-String
-    Clear-Host
-    Write-Host $string -ForegroundColor Red
-}
-function Mem {
-    [math]::Round((Get-Process -id $PID).WorkingSet64 / 1MB)
-}
-function Draw {
-    #cls
-    $table | Format-Table -AutoSize -Property ( $table.Columns.ColumnName | Select-Object -SkipLast 2 )
-
-    if ($infoCounter) {
-        Title
-        $Global:infoCounter--
-    }
-}
-function Title {
-    Write-Host "`$PID = $PID" -f 7
-    Write-Host "Passes: $passes" -f 7
-    Write-Host "-----------------------------------" -f 7
-    Write-Host "Press <Space> to start/stop all DS." -f 7
-    Write-Host "Press <Tab> to start/stop all SE." -f 7
-    Write-Host "Press <P> to start/stop all PL." -f 7
-    Write-Host "Press <S> to start/stop single DS." -f 7
-    Write-Host "Press <T> to start/stop all CT." -f 7
-    Write-Host "Press <Esc> to exit." -f 7
-    Write-Host "-----------------------------------" -f 7
-    #"WorkingSet64: $WSmem (originally was $origMem)"
-    #"GC Memory: $GCmem (originally was $origGC)"
-}
-function TitleInit {"--------`nPlease wait few seconds...`n--------"}
-#function GCmem { [math]::Round([gc]::GetTotalMemory(1)/1MB) }
-
-$table = New-Object System.Data.DataTable
-$table.Columns.Add("No","string") | Out-Null
-$table.Columns.Add("Name","string") | Out-Null
-$table.Columns.Add("Ping","string") | Out-Null
-$table.Columns.Add("DSver","string") | Out-Null
-$table.Columns.Add("DSmem","string") | Out-Null
-$table.Columns.Add("SEver","string") | Out-Null
-$table.Columns.Add("SEmem","string") | Out-Null
-$table.Columns.Add("PLmem","string") | Out-Null
-$table.Columns.Add("CTmem","string") | Out-Null
-
-for ($i = 1 ; $i -le $CTC.Length ; $i++) {
-    $row = $table.NewRow()
-    $row.No = $i
-    $row.Name = $CTC[$i-1] -replace '\.\w+\.\w+$'  # removing dns suffix
-    $table.Rows.Add($row)
-}
-
-#cls
-#$table | ft -AutoSize -Property $table.Columns.ColumnName
-#"`$PID = $PID"
-#$StopWatch = New-Object -TypeName System.Diagnostics.Stopwatch
-#$Lap = New-TimeSpan -Seconds 5
-#$StopWatch.Start()
-#sleep 3
-#if ($init -eq 'completed') {Title} else {TitleInit}
-Ping
-TitleInit
-
-do {
-    #$time1 = Get-Date
-    if ($runspacesPing.Status.IsCompleted -notcontains $false) {
-        #WatchRunspaces
-        foreach ($runspace in $runspacesPing) {
-            $runspace.Pipe.EndInvoke($runspace.Status)
-            $runspace.Pipe.Dispose()
-        }
-        try {
-            foreach ($result in $HS.results) {
-                $table.Where({$result.Server -match $_.Name}).foreach({$_.ping=$result.Ping;$_.DSver=$result.DSver;$_.DSmem=$result.DSmem;$_.SEver=$result.SEver;$_.SEmem=$result.SEmem;$_.PLmem=$result.PLmem;$_.CTmem=$result.CTmem})
-            }
-        }
-        catch {
-            "Something went wrong in TRY block"
-            Start-Sleep 2
-            #$hash = @{}
-            #for ($i = 0 ; $i -lt $runspacesPing.Count ; $i++) {
-            #    $hash.Add($runspacesPing.Num[$i],$runspacesPing.Status.IsCompleted[$i])
-            #}
-            #$string = $hash.GetEnumerator() | Sort-Object -Property Name
-            #Write-Host $string -ForegroundColor Red
-        }
-        #[gc]::Collect()
-        $runspacesPing = $null
-        $runspacesPing = @()
-        $HS = $null
-        $HS = [hashtable]::Synchronized(@{})
-        [System.Collections.Generic.List[PSObject]]$HS.results = @()
-        #$GCmem = [math]::Round([gc]::GetTotalMemory($true) / 1MB)
-        #$WSmem = (Mem)
-        $passes++
-        if ($init -ne 'completed') {$init = 'completed'} # ; $origMem = (Mem) ; $origGC = $GCmem}
-        Ping
-        Draw
-    }
-
+$CommandCenterHost = $env:COMPUTERNAME
+$List = New-Object 'System.Collections.Generic.List[PSCustomObject]'
+$Query = "SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE ((Name = 'Idle') OR (Name like '%ADC1000NT%') OR (Name like '%ADC.Services%')) AND (NOT Name like '_Total')"
     
-    #WatchRunspaces
+# Prepare the List which will work as a Table
+foreach ($server in $CTC) {
+    $obj = [PSCustomObject]@{
+        ServerName = $server -replace '\.wtldev\.net$'
+        IPAddress = [System.Net.Dns]::GetHostAddresses($server) | Where-Object { $_.AddressFamily -eq 'InterNetwork' } | Select-Object -ExpandProperty IPAddressToString
+        Ping = $null
+        DSver = $null
+        DSmem = $null
+        SEver = $null
+        SEmem = $null
+        DateTime = $null }
+    $List.Add($obj) }
 
-    #$StopWatch.Elapsed.Seconds
-    #Write-Output $time_diff.TotalMilliseconds
-    #$time_diff = (Get-Date) - $time1
-    #if ($time_diff.TotalMilliseconds -lt 1000) {Start-Sleep -Milliseconds (1000 - $time_diff.TotalMilliseconds)}
-    Start-Sleep -Milliseconds 500
+# Prepare the Script for the JobVer
+$JobVerScript = {
+    Invoke-Command -ComputerName $List.Where({$null -ne $_.Ping}).ServerName -Credential $CredsDomain -AsJob {
+        return [pscustomobject]@{
+            DSver = if (Test-Path 'C:\Users\Public\Desktop\ADC Device Server.lnk') {
+                $sh = New-Object -ComObject WScript.Shell
+                ((Get-ChildItem $sh.CreateShortcut('C:\Users\Public\Desktop\ADC Device Server.lnk').Targetpath).VersionInfo).ProductVersion
+            } else {$null}
+            SEver = (Get-ItemProperty HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object {$_.DisplayName -eq 'ADC Services'} | Select-Object -Property DisplayVersion).DisplayVersion } } }
+
+# Set and start stopwatches to show table once every second and to remove all jobs once in an hour. Also remember general start time to be able to get get Elapsed time. $Iterations is the iteration counter to calculate AVGmem
+$StopwatchDraw = [System.Diagnostics.Stopwatch]::new()
+$StopwatchDraw.Start()
+$StopwatchReset = [System.Diagnostics.Stopwatch]::new()
+$StopwatchReset.Start()
+$StartTime = Get-Date
+$Iterations = 0
+
+do {  # Main cycle
+    # Clear DSmem and SEmem for List Rows which have not been updated for a while
+    if ( $List | Where-Object { $_.DateTime } | Where-Object { $_.DateTime -lt (Get-Date).AddSeconds(-3) } ) {
+        $List | Where-Object { $_.DateTime } | Where-Object { $_.DateTime -lt (Get-Date).AddSeconds(-3) } | ForEach-Object {
+            $_.DSmem = $_.SEmem = $_.DSver = $_.SEver = $null } }
+
+    # Receive Ping data from JobPing
+    if ( $JobPing.HasMoreData ) {
+        $Results = Receive-Job $JobPing
+        foreach ($result in $Results) { $List.Where({ $result.Address -match $_.ServerName }).foreach({ $_.Ping=$result.ResponseTime }) } }
+
+    # Receive version data from JobVer
+    if ( $JobVer.HasMoreData ) {
+        $Results = Receive-Job $JobVer -ErrorAction SilentlyContinue
+        foreach ($result in $Results) { 
+            $List.Where({ $result.PSComputerName -match $_.ServerName }).foreach({ $_.DSver=$result.DSver;$_.SEver=$result.SEver }) } }
     
-    #looking for <Esc> or <R> or <Space> press
+    # Receive mem from JobWMI
+    if ( $JobWMI.HasMoreData ) {
+        $Results = @( Receive-Job $JobWMI -ErrorAction SilentlyContinue )
+        $ServerNames = $Results.PSComputerName | Select-Object -Unique
+        foreach ( $ServerName in $ServerNames ) {
+            $LocalResults = $Results.Where({ $_.PSComputerName -eq $ServerName })
+            $List.Where({ $ServerName -match $_.ServerName }).foreach({ $_.DSmem = $_.SEmem = $null ; $_.DateTime = (Get-Date) })  # clear mem values for current ServerName and update DateTime
+            foreach ($result in $LocalResults) { 
+                if ( $result.Name -eq 'ADC1000NT' ) { $List.Where({ $ServerName -match $_.ServerName }).foreach({ [int]$_.DSmem = $result.WorkingSet / 1MB }) }
+                if ( $result.Name -match 'ADC.Services' ) { $List.Where({ $ServerName -match $_.ServerName }).foreach({ [int]$_.SEmem = $_.SEmem + $result.WorkingSet / 1MB }) }
+                } } }
+    
+    # restart JobPing on complete
+    if ( $JobPing.State -ne 'Running' -or -not $JobPing ) {
+        $JobPing = Test-Connection $List.ServerName -Count 1 -AsJob }
+
+    # start new JobVer every X seconds
+    if ( $JobVer.PSBeginTime -lt (Get-Date).AddSeconds(-60) -or -not $JobVer ) {
+        if ( $List.Where({$null -ne $_.Ping}) ) { $JobVer = .$JobVerScript -ArgumentList $List, $CredsDomain, $CommandCenterHost } }
+
+    # start new JobWMI every X seconds
+    if ( $JobWMI.PSBeginTime -lt (Get-Date).AddSeconds(-1) -or -not $JobWMI ) {
+        if ( $List.Where({$null -ne $_.Ping}) ) { $JobWMI = Get-WmiObject -ComputerName $List.Where({$null -ne $_.Ping}).ServerName -Credential $CredsDomain -Query $Query -AsJob } }
+
+    # Redraw the table once in about 1 second
+    if ( $StopwatchDraw.ElapsedMilliseconds -ge 1000 ) {
+        $StopwatchDraw.Restart()
+        # Get info about current powershell process
+        $Mem = "{0:n2}" -f [math]::round(($(Get-Process -Id $PID).WorkingSet64 | Measure-Object -Sum).Sum/1MB,2)
+        $AvgMem = [math]::round((($AvgMem * $Iterations + $Mem) / ($Iterations + 1)),2)
+        $Elapsed = "{0:00}:{1:mm}:{1:ss}" -f [math]::Floor(((get-date) - $StartTime).TotalHours),((get-date) - $StartTime)
+        
+        Clear-Host
+        #Get-Job | Select-Object Id, Name, State, HasMoreData, PSBeginTime, PSEndTime, Command | Format-Table
+        "PID: {0}  Mem: {1:n2}  Avg: {2:n2}  Elapsed: {4}  SEmem: {5}  GoodCTC: {6}  Jobs: {7}" -f $PID, $Mem, $AvgMem, $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss:fff'), $Elapsed, $List[0].SEmem, $List.Where({$null -ne $_.Ping}).Count, (Get-Job).Count
+        $List | Select-Object @{Name='ServerName'; Expression={$_.ServerName -replace "^WTL-ADC-"}}, IPAddress, Ping, DSmem, SEmem, @{Name='LastInfo'; Expression={$_.DateTime.ToString("HH:mm:ss")}} -ExcludeProperty DateTime, PSComputerName, RunspaceId | Format-Table
+        #$List | Select-Object @{Name='ServerName'; Expression={$_.ServerName -replace "^WTL-ADC-"}}, IPAddress, Ping, DSver, DSmem, SEver, SEmem, @{Name='LastInfo'; Expression={$_.DateTime.ToString("HH:mm:ss")}} -ExcludeProperty DateTime, PSComputerName, RunspaceId | Format-Table
+        $Iterations++ }
+    
+    # Remove all jobs with old PSBeginTime
+    $JobsToRemove = Get-Job | Where-Object { ( $_.PSBeginTime -lt (Get-Date).AddSeconds(-30) -and $_.State -ne 'Running' ) -or ( $_.State -ne 'Running' -and ( -not $_.HasMoreData ) ) }  # old and finished or finished and empty
+    #$JobsToRemove | Select-Object Id, Name, State, HasMoreData, PSBeginTime, PSEndTime, Command | Format-Table
+    $JobsToRemove | Remove-Job -Force
+
+    # Look for a key press
     if ($host.ui.RawUi.KeyAvailable) {
         $key=$host.ui.RawUI.ReadKey("NoEcho,IncludeKeyDown,IncludeKeyUp")
         $Host.UI.RawUI.FlushInputBuffer()
@@ -299,7 +125,7 @@ do {
                     if ($table.CTmem -gt 0) {StopCT}
                         else {StartCT}
                 }
-                <#Esc#>   27 {exit}
+                <#Esc#>   27 { Remove-Job * -Force -ErrorAction SilentlyContinue ; exit }
                 <#Space#> 32 {
                     if ($table.DSmem -gt 0) {StopDS}
                         else {StartDS}
@@ -309,8 +135,6 @@ do {
                         else {StartSE}
                 }
                 <#F1#>    112 {$infoCounter = 10}
-                <#F4#>    #115 {cls ; Get-Job ; Write-Host "WTF"}
-            } #end switch
-        }
-    } #end if
-} until ($key.VirtualKeyCode -eq 27)
+                <#F4#>    115 { } } } }
+
+    Start-Sleep -Milliseconds 333 } until ( $key.VirtualKeyCode -eq 27 )

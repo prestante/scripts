@@ -14,10 +14,10 @@ function ComposeQuery {
     return $query
 }
 
-#while ( $true ) {
+while ( $true ) {
     Measure-Command {
         #Invoke-Command -ComputerName $CTC -Credential $CredsDomain { return 0 }
         $Results = Get-WmiObject -ComputerName $CTC -Credential $CredsDomain -Query (ComposeQuery)
     } | Select-Object -ExpandProperty TotalMilliseconds
-    #Start-Sleep -Milliseconds 1000
-#}
+    Start-Sleep -Milliseconds 1000
+}
