@@ -9,6 +9,7 @@ $CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc
 $CommandCenterHost = $env:COMPUTERNAME
 $List = New-Object 'System.Collections.Generic.List[PSCustomObject]'
 $Query = "SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE ((Name = 'Idle') OR (Name like '%ADC1000NT%') OR (Name like '%ADC.Services%')) AND (NOT Name like '_Total')"
+#$Query = "SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE Name = 'Idle'"
     
 # Prepare the List which will work as a Table
 foreach ($server in $CTC) {
