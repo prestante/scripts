@@ -43,7 +43,8 @@ function Title {
     Write-Host "----------------------------------------------------------------------------" -f White -b Black
 }
 
-$defaultFolder = 'C:\server\12.29.20.1\log\SNP2#4-SNPMC'
+#$defaultFolder = 'C:\server\12.29.20.1\log\SNP1#3-SNPMC'
+$defaultFolder = 'C:\server\log\'
 $KnownBodies = [System.Collections.ArrayList]@()
 $md5 = New-Object -TypeName System.Security.Cryptography.MD5CryptoServiceProvider
 $utf8 = New-Object -TypeName System.Text.UTF8Encoding
