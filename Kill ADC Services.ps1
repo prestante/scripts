@@ -10,8 +10,10 @@ Start-Sleep 1
 
 Write-Host "$(GD)Stopping ADC Services processes" -b Black -f Yellow
 Get-Process -Name 'Harris.Automation.ADC.Services*' | Stop-Process -Force -ErrorAction SilentlyContinue
+Get-Process -Name 'odata*' | Stop-Process -Force -ErrorAction SilentlyContinue  # while we are using oData service
 Start-Sleep 1
 Get-Process -Name 'Harris.Automation.ADC.Services*' | Stop-Process -Force -ErrorAction SilentlyContinue
+Get-Process -Name 'odata*' | Stop-Process -Force -ErrorAction SilentlyContinue  # while we are using oData service
 Start-Sleep 1
 
 Write-Host "$(GD)Enabling ADC Services" -b Black -f Yellow
