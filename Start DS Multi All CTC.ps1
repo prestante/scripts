@@ -5,8 +5,8 @@ $CTC = @('WTL-ADC-CTC-01.wtldev.net', 'WTL-ADC-CTC-02.wtldev.net', 'WTL-ADC-CTC-
 $CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
 $PSSessionOption.IdleTimeout = New-TimeSpan -days 24 -Seconds 0
 
-Invoke-Command -ComputerName $CTC -Credential $CredsDomain -InDisconnectedSession {
-    $HostName = HOSTNAME.EXE
+Invoke-Command -ComputerName $CTC[0..31] -Credential $CredsDomain -InDisconnectedSession {
+    #$HostName = HOSTNAME.EXE
     if  ( Get-Process ADC1000NT -ErrorAction SilentlyContinue ) {
         # do nothing
     } else {
