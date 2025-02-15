@@ -1,4 +1,4 @@
-﻿function Get-CRC32 {
+function Get-CRC32 {
     param(
         [Parameter(Mandatory = $False)]
         [Int]$InitialCRC = 0,
@@ -35,7 +35,10 @@ function New-LstFile {
     # Add header
     $hexHeader60 = "50 4c 41 59 4c 49 53 54 56 45 52 31 32 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 2d 04 2b 39 3a 17 8e e5 40"
     $byteHeader60 = $hexHeader60 -split ' ' | ForEach-Object { [byte]("0x$_") }
-    $content.Add($byteHeader60) | Out-Null
+    foreach ($byte in $byteHeader60) {
+        $content.Add($byte) | Out-Null
+    }
+    # $content.Add($byteHeader60) | Out-Null
 
     # Add 4 placeholder bytes to complete the header. Later they will be replaced with CRC32
     1..4 | ForEach-Object { $content.Add([byte]0) } | Out-Null
@@ -62,7 +65,7 @@ function New-LstFile {
         # OAT (4 bytes) - current time
         $time = "{0:HH}:{0:mm}:{0:ss}:00" -f (Get-Date)
         $time -match '(\d\d).(\d\d).(\d\d).(\d\d)' | Out-Null
-        for ($i = 0; $i -lt 4; $i++) { 
+        for ($i = 3; $i -ge 0; $i--) { 
             $content.Add([byte]"0x$($Matches.($i+1))") | Out-Null 
         }
 

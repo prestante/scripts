@@ -62,12 +62,12 @@ $days = ((Get-Date) - (Get-Date '01/01/1900')).Days #getting current date as num
 $CompileID = ""
 $CompileSOM = ""
 $Reconcile = ""
-#$ReconcilePrefix = Read-Host "New Reconcile prefix"
+# $ReconcilePrefix = Read-Host "New Reconcile prefix"
 $ABOX = ""
 $ABOXSOM = ""
 $BBOX = ""
 $BBOXSOM = ""
-$newResBuffer = "ASDB:NoteContent=ss;ASSEG:NoteContent=ms;" # omg! wtf is this???
+# $newResBuffer = "ASDB:NoteContent=ss;ASSEG:NoteContent=ms;" # omg! wtf is this???
 
 #setting starting position to 64 (skipping .lst file header)
 $pos = 64

@@ -1,5 +1,5 @@
 ﻿$startEvent = 1
-$eventsToShow = 10
+$eventsToShow = 1
 
 $show = @{  # hash table of keys to show/don't show bytes for each event field
 showEventType = 0
@@ -52,7 +52,7 @@ showShowDescription = 0
 showDataBufferSize = 0
 showDataBuffer = 0
 }
-foreach ($key in @($show.Keys)) {$show.$key = 0}  # override all show keys to 1 or 0 to show/don't show corresponding bytes
+foreach ($key in @($show.Keys)) {$show.$key = 1}  # override all show keys to 1 or 0 to show/don't show corresponding bytes
 
 
 # reference tables
@@ -127,7 +127,10 @@ Function Get-FileName($initialDirectory) {
 # reading .lst file to $Content byte array
 #$file = 'C:\Lists\!!!!.lst'
 #$file = 'C:\Lists\List12500 PL Clear.lst'
-$file = Get-FileName('C:\Lists')
+# $file = Get-FileName('\\wtlnas1\Public\Galkovsky\Lists')
+$file = '\\wtlnas1\Public\Galkovsky\Lists\!!!Generated.lst'
+$file = '\\wtlnas1\Public\Galkovsky\Lists\!!! 2 events.lst'
+$file = '\\wtlnas1\Public\Galkovsky\Lists\!!!!.lst'
 if (!$file) { exit }
 
 #$time1 = Get-Date
@@ -488,4 +491,4 @@ do {
 $table | ft -Property ($table.Columns.Caption | ? {$_ -notmatch '^ABOX$|^BBOX$|BBOXSOM|CompileSOM|CompileID|Rating|ShowID|ShowDescription|Content'})
 
 #"{0} seconds ({1} ms)" -f[math]::Round(((Get-Date) - $time0).TotalSeconds, 1), [int]((Get-Date) - $time0).TotalMilliseconds
-if ($Host.Name -ne 'Windows PowerShell ISE Host') {read-host}  # if not Powershell_ISE - wait for an input
+if ($Host.Name -ne 'Visual Studio Code Host') {read-host}  # if not Powershell_ISE - wait for an input
