@@ -125,22 +125,13 @@ Function Get-FileName($initialDirectory) {
 } #end function Get-FileName
 
 # reading .lst file to $Content byte array
-#$file = 'C:\Lists\!!!!.lst'
-#$file = 'C:\Lists\List12500 PL Clear.lst'
 # $file = Get-FileName('\\wtlnas1\Public\Galkovsky\Lists')
 $file = '\\wtlnas1\Public\Galkovsky\Lists\!!!Generated.lst'
 $file = '\\wtlnas1\Public\Galkovsky\Lists\!!! 2 events.lst'
-$file = '\\wtlnas1\Public\Galkovsky\Lists\!!!!.lst'
+$file = '\\wtlnas1\Public\Galkovsky\Lists\!!!!python5.lst'
 if (!$file) { exit }
 
-#$time1 = Get-Date
-#$Content = New-object -type System.Collections.ArrayList
-#(Get-Content $file -ReadCount 0 -Encoding Byte) | % {$Content.Add($_)} | Out-Null # read entire list
-#(Get-Content $file -TotalCount 7000 -Encoding Byte) | % {$Content.Add($_)} | Out-Null #read first 7000 bytes ~10-20 events
-#(Get-Content $file -TotalCount (750*$eventsToShow) -Encoding Byte) | % {$Content.Add($_)} | Out-Null # read approximate number of bytes corresponding to $eventsToShow
-#(Get-Content $file -TotalCount (750*($startEvent + $eventsToShow)) -Encoding Byte) | % {$Content.Add($_)} | Out-Null # read approximate number of bytes corresponding to $startEvent plus $eventsToShow
 $Content = Get-Content $file -Raw -Encoding Byte
-#"{0} seconds ({1} ms)" -f[math]::Round(((Get-Date) - $time1).TotalSeconds, 1), [int]((Get-Date) - $time1).TotalMilliseconds ; return
 
 function showBytes ([int]$numberOfBytes, [string]$name) {
     if ($event -lt $startEvent) {return}
@@ -483,12 +474,8 @@ do {
     
     $event++
 } while (($pos -lt $Content.Count) -and ($event -lt ($startEvent + $eventsToShow)))
-#} while (($pos -lt $Content.Count))
 
 
-#$table | ft -Property $table.Columns.Caption
-#$table | select -First 26 | ft -Property ($table.Columns.Caption | ? {$_ -notmatch 'content|show|rating|ssp|title'})
 $table | ft -Property ($table.Columns.Caption | ? {$_ -notmatch '^ABOX$|^BBOX$|BBOXSOM|CompileSOM|CompileID|Rating|ShowID|ShowDescription|Content'})
 
-#"{0} seconds ({1} ms)" -f[math]::Round(((Get-Date) - $time0).TotalSeconds, 1), [int]((Get-Date) - $time0).TotalMilliseconds
 if ($Host.Name -ne 'Visual Studio Code Host') {read-host}  # if not Powershell_ISE - wait for an input
