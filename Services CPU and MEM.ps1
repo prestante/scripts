@@ -19,7 +19,7 @@ function NewProcs {
         Write-Host "Be careful with the Key Word. If some new process suitable for your Key Word will appear in the system later, it will be added to the list automatically." -f Yellow -b Black
         Write-Host "You can also type several Key Words separated by comma. They all will be used at once to filter the processes list." -f Yellow -b Black
         Write-Host "Later you will be able to enter a new Key Word after pressing <N>." -f Cyan -b Black
-        if (-not $Global:table.Values.Id) {$Global:ProcKeyWords = 'ADC.Services'; UpdProcs; Return}  # Forcing ADC.Services to be a Key Word for the first cycle
+        if (-not $Global:table.Values.Id) {$Global:ProcKeyWords = 'ADC.Services,ODataService'; UpdProcs; Return}  # Forcing ADC.Services to be a Key Word for the first cycle
         else {$Global:ProcKeyWords = Read-Host "Enter Key Word(s)"}  # And returning to normal operations at second and next cycles
         UpdProcs
         
