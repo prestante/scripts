@@ -3,7 +3,7 @@
 # I want this variant to use one continuous job for every CTC, which (job) will last several seconds on CTC gathering all required data and return it part by part to the main script. 
 # The memory is about 220 MB. Looks stable. But the script loads CPU by about 7%. And loads 
 
-$CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
+$CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:VADC_PASSWORD -Force))
 $CommandCenterHost = HOSTNAME.EXE
 $List = New-Object 'System.Collections.Generic.List[PSCustomObject]'
 

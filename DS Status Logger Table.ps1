@@ -5,7 +5,7 @@ $CTC = @('WTL-ADC-CTC-30.wtldev.net', 'WTL-ADC-CTC-31.wtldev.net', 'WTL-ADC-CTC-
 #$CTC = @('WTL-ADC-CTC-32.wtldev.net')
 # The idea is to gather DS/SE versions by the job once in like a minute. And to receive CPU and MEM by fast WMI provider directly.
 
-$CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
+$CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:VADC_PASSWORD -Force))
 $CommandCenterHost = $env:COMPUTERNAME
 $List = New-Object 'System.Collections.Generic.List[PSCustomObject]'
 $Query = "SELECT * FROM Win32_PerfRawData_PerfProc_Process WHERE ((Name = 'Idle') OR (Name like '%ADC1000NT%') OR (Name like '%ADC.Services%')) AND (NOT Name like '_Total')"

@@ -33,7 +33,7 @@ $ComputerNames = @(
     [PSCustomObject]@{ HostName = "WTL-ADC-CTC-32"; IPaddress = "10.9.80.175" })
     #[PSCustomObject]@{ HostName = "WTL-ADC-CTC-REF"; IPaddress = "10.9.80.50" }
 $CredsLocal = [System.Management.Automation.PSCredential]::new('local\imagineLocal',(ConvertTo-SecureString -AsPlainText $env:imgLocPW -Force))
-$CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
+$CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:VADC_PASSWORD -Force))
 $DesiredDomain = 'WTL'  # set CTC if you want VMs in a workgroup or WTL if you want them to join WTLDEV.NET domain
 $FreshCTC = 0  # set this flag if you have just created VMs and wrote their IPs into the table. So we are sure IPs correspond to CTC VMs.
 

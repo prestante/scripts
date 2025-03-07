@@ -1,5 +1,5 @@
 ﻿$username = 'wtldev.net\vadc'
-$password = ConvertTo-SecureString $env:vpw -AsPlainText -Force
+$password = ConvertTo-SecureString $env:VADC_PASSWORD -AsPlainText -Force
 $credential = New-Object System.Management.Automation.PSCredential($username, $password)
 $hostname = 'wtl-adc-ctc-01.wtldev.net'
 

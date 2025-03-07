@@ -6,7 +6,7 @@ $WannaRemove = 0  # top priority
 $InstallAppVersion = '5.10.4.1'
 
 $CredsLocal = [System.Management.Automation.PSCredential]::new('local\imagineLocal',(ConvertTo-SecureString -AsPlainText $env:imgLocPW -Force))
-$CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:vPW -Force))
+$CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:VADC_PASSWORD -Force))
 $BuildsFolder = '\\wtlnas5\Public\Releases\ADC\ADC Services'
 $wtlnas1PSFolder = '\\wtlnas1\public\ADC\PS'
 Write-Host "$(if ($WannaRemove){"Removing"} else {"Installing"}) ADC Services $InstallAppVersion... Please wait..."
