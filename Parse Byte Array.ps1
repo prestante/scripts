@@ -125,10 +125,10 @@ Function Get-FileName($initialDirectory) {
 } #end function Get-FileName
 
 # reading .lst file to $Content byte array
-# $file = Get-FileName('\\wtlnas1\Public\Galkovsky\Lists')
-$file = '\\wtlnas1\Public\Galkovsky\Lists\!!!Generated.lst'
-$file = '\\wtlnas1\Public\Galkovsky\Lists\!!! 2 events.lst'
-$file = '\\wtlnas1\Public\Galkovsky\Lists\!!!!python5.lst'
+$file = Get-FileName('\\wtlnas1\Public\Galkovsky\Lists')
+# $file = '\\wtlnas1\Public\Galkovsky\Lists\!!!Generated.lst'
+# $file = '\\wtlnas1\Public\Galkovsky\Lists\!!! 2 events.lst'
+# $file = '\\wtlnas1\Public\Galkovsky\Lists\!!!!python5.lst'
 if (!$file) { exit }
 
 $Content = Get-Content $file -Raw -Encoding Byte
