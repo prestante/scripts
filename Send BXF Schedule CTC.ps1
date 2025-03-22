@@ -8,16 +8,17 @@ $XmlFile = '\\wtlnas1\public\ADC\PS\resources\xml\Add.Pri.and.Sec.Template.One.x
 
 #Setting configuration and Getting list of ListNames from all Integration Services config files
 $Url = @(foreach ($CTCip in $CTC) {'http://' + $CTCip + ':1985/SendMessage?destination_name=traffic'})
-$servers = 1 # Number of CTCs to send schedule to
-$SSN = 0 #SSN is Starting Server Number. 0 means starting from first $CTC pc.
-$lists = 1 # Number of Lists to send schedule to
-$interval = 40 #OAT interval in seconds between Lists
-$pause = 2 #pause in seconds between sending bxf messages
-$add = 0 #set add to 1 if you want just to add schedule to already running lists. set to 0 if you want to restart DS and add new schedule starting with AO event
+$servers =  2   # Number of CTCs to send schedule to
+$SSN =      0   # SSN is Starting Server Number. 0 means starting from first $CTC pc.
+$lists =    1   # Number of Lists to send schedule to
+$interval = 40  # OAT interval in seconds between Lists
+$pause =    2   # Pause in seconds between sending bxf messages
+$add =      0   # Set add to 1 if you want just to add schedule to already running lists. set to 0 if you want to restart DS and add new schedule starting with AO event
+$once =     0   # Do the cycle just once
 
-#$addTime = (Get-Date 14:30) #at which time to send schedule
-$addTime = (Get-Date).AddSeconds(5) #at which time to send schedule
-if ($addTime -lt (Get-Date)) {$addTime = $addTime.AddDays(1)}
+# $addTime = (Get-Date 14:30) #at which time to send schedule
+$addTime = (Get-Date).AddSeconds(-5) #at which time to send schedule
+# if ($addTime -lt (Get-Date)) {$addTime = $addTime.AddDays(1)}
 
 $Date=(Get-Date).AddDays(0) | Get-Date -Format 'yyyy-MM-dd'
 $Time=Get-Date -Format 'ddMMyyHHmmss'
@@ -33,7 +34,7 @@ function Prepare {
             Start-Process 'C:\Users\Public\Desktop\ADC Device Server.lnk' ; Start-Sleep 1
         }
 
-        [System.Collections.Generic.List[PSObject]]$services = Get-Service -Name 'ADC*' | where {$_.DisplayName -notmatch 'Aggregation'}
+        [System.Collections.Generic.List[PSObject]]$services = @(Get-Service -Name 'ADC*'; Get-Service -Name 'OData*') | Where-Object {$_.DisplayName -notmatch 'Aggregation'}
         [System.Collections.Generic.List[PSObject]]$servicesInOrder = @()
 
         if (($services.status -contains 'Stopped') -or ($services.status -contains 'Starting')) {
@@ -45,32 +46,32 @@ function Prepare {
             $services | Set-Service -StartupType Manual
         }
 
-        $services | where {$_.DisplayName -match 'Data'} | % {$servicesInOrder.Add($_)}
-        $services | where {$_.DisplayName -match 'Timecode'} | % {$servicesInOrder.Add($_)}
-        $services | where {$_.DisplayName -match 'AsRun'} | % {$servicesInOrder.Add($_)}
-        $services | where {$_.DisplayName -match 'Device'} | % {$servicesInOrder.Add($_)}
-        $services | where {$_.DisplayName -match 'List'} | % {$servicesInOrder.Add($_)}
-        $services | where {$_.DisplayName -match 'Error'} | % {$servicesInOrder.Add($_)}
+        $services | Where-Object {$_.DisplayName -match 'Data'} | ForEach-Object {$servicesInOrder.Add($_)}
+        $services | Where-Object {$_.DisplayName -match 'Timecode'} | ForEach-Object {$servicesInOrder.Add($_)}
+        $services | Where-Object {$_.DisplayName -match 'AsRun'} | ForEach-Object {$servicesInOrder.Add($_)}
+        $services | Where-Object {$_.DisplayName -match 'Device'} | ForEach-Object {$servicesInOrder.Add($_)}
+        $services | Where-Object {$_.DisplayName -match 'List'} | ForEach-Object {$servicesInOrder.Add($_)}
+        $services | Where-Object {$_.DisplayName -match 'Error'} | ForEach-Object {$servicesInOrder.Add($_)}
         $services | 
-         where {$_.DisplayName -notmatch 'Data'} |
-         where {$_.DisplayName -notmatch 'Timecode'} |
-         where {$_.DisplayName -notmatch 'AsRun'} | 
-         where {$_.DisplayName -notmatch 'Device'} | 
-         where {$_.DisplayName -notmatch 'List'} | 
-         where {$_.DisplayName -notmatch 'Error'} | 
-         where {$_.DisplayName -notmatch 'Synchro'} | 
-         where {$_.DisplayName -notmatch 'Integra'} | 
-         where {$_.DisplayName -notmatch 'Manager'} | 
-        % {$servicesInOrder.Add($_)}
-        #$services | where {$_.DisplayName -match 'Integra'} | % {$servicesInOrder.Add($_)}
-        $services | where {$_.DisplayName -match 'Synchro'} | % {$servicesInOrder.Add($_)}
-        $services | where {$_.DisplayName -match 'Manager'} | % {$servicesInOrder.Add($_)}
+         Where-Object {$_.DisplayName -notmatch 'Data'} |
+         Where-Object {$_.DisplayName -notmatch 'Timecode'} |
+         Where-Object {$_.DisplayName -notmatch 'AsRun'} | 
+         Where-Object {$_.DisplayName -notmatch 'Device'} | 
+         Where-Object {$_.DisplayName -notmatch 'List'} | 
+         Where-Object {$_.DisplayName -notmatch 'Error'} | 
+         Where-Object {$_.DisplayName -notmatch 'Synchro'} | 
+         Where-Object {$_.DisplayName -notmatch 'Integra'} | 
+         Where-Object {$_.DisplayName -notmatch 'Manager'} | 
+        ForEach-Object {$servicesInOrder.Add($_)}
+        #$services | Where-Object {$_.DisplayName -match 'Integra'} | ForEach-Object {$servicesInOrder.Add($_)}
+        $services | Where-Object {$_.DisplayName -match 'Synchro'} | ForEach-Object {$servicesInOrder.Add($_)}
+        $services | Where-Object {$_.DisplayName -match 'Manager'} | ForEach-Object {$servicesInOrder.Add($_)}
 
-        $servicesInOrder | % {
+        $servicesInOrder | ForEach-Object {
             Write-Host "$(GD)Starting $($_.name -replace '(ADC)(.*)(Service)','$1 $2 $3')" -b Black -f Yellow
             Start-Service $_.name -WarningAction SilentlyContinue
         }
-        start-sleep 3
+        Start-Sleep 3
         Get-Service -Name ADCIntegrationService | Start-Service -wa SilentlyContinue
     } | Out-Null
     Start-Sleep 30
@@ -84,7 +85,7 @@ function Send {
             #getting content for RestMethod from XmlFile replacing Dates, Lists, Start Times etc.
             $Start = "{0:HH}:{0:mm}:{0:ss};00"  -f $begin.AddSeconds($i*$interval)
             $List = "CTC-{0:d2}:{1:d2}" -f ($SN+1), ($LN+1)
-            $Content = Get-Content $XmlFile -Raw | % {$_ -replace '#DATE',$Date -replace '#LIST',$List -replace '#TIME',$Time -replace '#START',$Start -replace '#MODE',$Mode}
+            $Content = Get-Content $XmlFile -Raw | ForEach-Object {$_ -replace '#DATE',$Date -replace '#LIST',$List -replace '#TIME',$Time -replace '#START',$Start -replace '#MODE',$Mode}
         
             if ($add) {Write-Host ("$(GD)Adding schedule for $List -> {0} - " -f ($Url[$SN] -replace '^.*\/(\d+\.\d+\.\d+\.\d+\:\d+).*$','$1')) -NoNewline}
             else {Write-Host ("$(GD)Loading schedule for $List with OAT {1} -> {0} - " -f ($Url[$SN] -replace '^.*\/(\d+\.\d+\.\d+\.\d+\:\d+).*$','$1'),$Start) -NoNewline}
@@ -94,7 +95,7 @@ function Send {
             catch {
                 Write-Host "Fail" -b Black -f Red
                 Write-Host "$(GD)Failed to send bxf for $List. Retry in 20 seconds - " -b Black -f Yellow -NoNewline
-                sleep 20
+                Start-Sleep 20
                 try {Write-Host (Invoke-RestMethod -Method 'post' -Uri $Url[$SN] -Body $Content) -NoNewline ; Write-Host "Success" -b Black -f Green}
                 catch {Write-Host "Fail`n$(GD)Failed to send schedule for $List" -b Black -f Red}
             }
@@ -106,8 +107,9 @@ function Send {
     }
 }
 function Wait {
-    Write-Host "$(GD)Waiting for Integration and List Services to finish up their job..." -fo yellow -ba black
-    Start-Sleep (25+$lists*5)
+    $waitTime = 25 + $lists * 5
+    Write-Host "$(GD)Waiting $waitTime seconds for Integration and List Services to finish up their job..." -fo yellow -ba black
+    Start-Sleep $waitTime
 }
 function Postpare {
     Write-Host "$(GD)Stopping ADC Services on target CTC to free up their CPU resources" -fo yellow -ba black
@@ -115,7 +117,7 @@ function Postpare {
         $services = Get-Service -Name 'ADC*'
         $services | Set-Service -StartupType Disabled
         Start-Sleep 1
-        Get-Process -Name 'Harris.Automation.ADC.Services*' | Stop-Process -Force -ErrorAction SilentlyContinue
+        @(Get-Process -Name 'Harris.Automation.ADC.Services*'; Get-Process -Name 'OData*') | Stop-Process -Force -ErrorAction SilentlyContinue
         Start-Sleep 1
         $services | Set-Service -StartupType Manual
     }
@@ -126,7 +128,7 @@ function ReplaceGUIDs {
     #$XmlFileContent = $content -split "\n"
     $sw = New-Object System.IO.StreamWriter $XmlFile
     "$(GD)Replacing GUIDs..."
-    $XmlFileContent | % { 
+    $XmlFileContent | ForEach-Object { 
         if ($_ -match "\w{8}-\w{4}-\w{4}-\w{4}-\w{12}") {
             $a1 = $matches[0].Substring(0,8)
             $a2 = $matches[0].Substring(9,4)
@@ -164,9 +166,9 @@ do {
         wait
         postpare
         ReplaceGUIDs
-        if (!$add) { $add = 1 ; $addTime = $addTime.AddHours(-2) }
+        if ($once) { return }  # Doing the cycle just once
+        if (-not $add) { $add = 1 ; $addTime = $addTime.AddHours(-2) }  # If it was a fresh hard-started schedule ($add=0), we prepare for the next day list append
         Write-Host "$(GD)Next time to send schedule is $addTime" -f Yellow -b Black
-        return
     }
 
     if ($host.ui.RawUi.KeyAvailable) {
