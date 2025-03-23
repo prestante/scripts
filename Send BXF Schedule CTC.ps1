@@ -8,14 +8,14 @@ $XmlFile = '\\wtlnas1\public\ADC\PS\resources\xml\3877.xml'
 
 #Setting configuration and Getting list of ListNames from all Integration Services config files
 $Url = @(foreach ($CTCip in $CTC) {'http://' + $CTCip + ':1985/SendMessage?destination_name=traffic'})
-$servers =  2   # Number of CTC VMs to send schedule to
-$lists =    2   # Number of Lists on each CTC VM to send schedule to
+$servers =  6   # Number of CTC VMs to send schedule to
+$lists =    1   # Number of Lists on each CTC VM to send schedule to
 $add =      0   # Set add to 1 if you want just to add schedule to already running lists. set to 0 if you want to restart DS and add new schedule starting with AO event
 $SSN =      0   # SSN is Starting Server Number. 0 means starting from first $CTC pc.
-$once =     1   # Do the cycle just once
-$pause =    2   # Pause in seconds between sending bxf messages
-$interval = 40  # OAT interval in seconds between Lists
-$debug =    1   # Don't actually send any bxf
+$once =     0   # Do the cycle just once
+$pause =    0   # Pause in seconds between sending bxf messages. Since 5.10.7 (VADC-13174) this should work with no pauses
+$interval = 40  # OnAirTime interval between Lists in seconds
+$debug =    0   # Don't actually send any bxf, just announce what and where are going to be sent
 
 # $addTime = (Get-Date 14:30) #at which time to send schedule
 $addTime = (Get-Date).AddSeconds(-5) #at which time to send schedule
@@ -163,10 +163,10 @@ Write-Host "$(GD)Next time to send schedule is $addTime" -f Yellow -b Black
 do {
     if ($addTime -lt (Get-Date)) {
         $addTime = $addTime.AddDays(1)
-        # prepare
+        prepare
         send
-        # wait
-        # postpare
+        wait
+        postpare
         ReplaceGUIDs
         if ($once) { return }  # Doing the cycle just once
         if (-not $add) { $add = 1 ; $addTime = $addTime.AddHours(-2) }  # If it was a fresh hard-started schedule ($add=0), prepare for the next day list append
