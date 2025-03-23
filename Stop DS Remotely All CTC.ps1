@@ -6,7 +6,7 @@
 $CredsDomain = [System.Management.Automation.PSCredential]::new('wtldev.net\vadc',(ConvertTo-SecureString -AsPlainText $env:VADC_PASSWORD -Force))
 
 Write-Host "Stopping ADC1000NT on all CTC. Please wait..."
-Invoke-Command -ComputerName $CTC[0..31] -Credential $CredsDomain {
+Invoke-Command -ComputerName $CTC[0..31] -Credential $CredsDomain -ErrorAction SilentlyContinue {
     $Report = $HostName = $env:COMPUTERNAME
     if ( Get-Process -Name ADC1000NT -ErrorAction SilentlyContinue ) {
         $Report += ": Stopping ADC1000NT..."
