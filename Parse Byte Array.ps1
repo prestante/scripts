@@ -1,5 +1,5 @@
 ﻿$startEvent = 1
-$eventsToShow = 1
+$eventsToShow = 10
 
 $show = @{  # hash table of keys to show/don't show bytes for each event field
 showEventType = 0
@@ -52,7 +52,7 @@ showShowDescription = 0
 showDataBufferSize = 0
 showDataBuffer = 0
 }
-foreach ($key in @($show.Keys)) {$show.$key = 1}  # override all show keys to 1 or 0 to show/don't show corresponding bytes
+foreach ($key in @($show.Keys)) {$show.$key = 0}  # override all show keys to 1 or 0 to show/don't show corresponding bytes
 
 
 # reference tables
