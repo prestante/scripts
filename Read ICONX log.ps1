@@ -55,7 +55,12 @@ $init = 1
 
 do {
     if (!$pause) {
-        if ($defaultFolder) {$newFile = (Get-ChildItem $defaultFolder -filter "ICONX*.log","IconStationX*.log" -ea SilentlyContinue | sort -Property LastWriteTime | select -Last 1).FullName}
+        if ($defaultFolder) {
+            $newFile = (Get-ChildItem $defaultFolder -Filter "*.log" -ErrorAction SilentlyContinue | 
+                        Where-Object { $_.Name -match "^(ICONX|IconStationX).*\.log$" } | 
+                        Sort-Object -Property LastWriteTime | 
+                        Select-Object -Last 1).FullName
+        }
         #if (!$newFile) {$newFile = Get-FileName $defaultFolder}
         if ((!$newfile) -and (!$waitForO) -and ($defaultFolder)) {Write-Host "There are no ICONX log files in $(if ($init){"default"}else{"selected"}) folder '$defaultFolder'. Press <O> to select another folder." -f red -b Black; $waitForO = 1; $file = $null; $init = 0; Title}
         if (($newFile) -and ($newFile -ne $file)) {
