@@ -9,8 +9,8 @@ showEffects = 0
 showOnAirTime = 0
 showID = 0
 showTitle = 0
-showSOM = 0
-showDUR = 0
+showSOM = 1
+showDUR = 1
 showChannel = 0
 showSeg = 0
 showIndexes = 0
@@ -52,7 +52,7 @@ showShowDescription = 0
 showDataBufferSize = 0
 showDataBuffer = 0
 }
-foreach ($key in @($show.Keys)) {$show.$key = 0}  # override all show keys to 1 or 0 to show/don't show corresponding bytes
+# foreach ($key in @($show.Keys)) {$show.$key = 0}  # override all show keys to 1 or 0 to show/don't show corresponding bytes
 
 
 # reference tables
