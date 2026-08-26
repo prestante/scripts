@@ -62,13 +62,17 @@ function UpdProcs {
             $Global:table = [ordered]@{}
             Get-WmiObject -Query (ComposeQuery) | ForEach-Object {
                 if ($_.Name -ne 'Idle') {  # for all non-Idle objects, aka main table processes
+                    $gp = Get-Process -Id $_.IDProcess -ea SilentlyContinue
+                    $ver = $null
+                    try { if ($gp.ProductVersion) {$ver = $gp.ProductVersion} else {$ver = $gp.FileVersion} } catch {}
                     $Global:table.Add([string]$_.IDProcess, [PSCustomObject]@{
                         Name = [string]$_.Name  -replace '^Harris.Automation.ADC.Services.' -replace 'ServiceHost' -replace 'Validation' -replace '#\d+$'  # remove #00 at the end of proc name
                         Id = [int]$_.IDProcess
+                        Version = $ver
                         Memory = [int]0
                         CPU = [int]0
                         DecimalCPU = [decimal]0
-                        Start = (Get-Process -Id $_.IDProcess -ea SilentlyContinue).StartTime  # looks like it doesn't affect the performance, however it sometimes leads to errors
+                        Start = $gp.StartTime  # looks like it doesn't affect the performance, however it sometimes leads to errors
                         LastPercentProcessorTime = [UInt64]$_.PercentProcessorTime
                         LastWorkingSet = [UInt64]$_.WorkingSet
                         LastTimestamp_Sys100NS = [UInt64]$_.Timestamp_Sys100NS
@@ -172,7 +176,8 @@ do {
 
     #if (-not $Debug) {Clear-Host}
     Clear-Host
-    $Global:table.Values | Select-Object -Property Name, Id, Memory, CPU | Format-Table -AutoSize
+    $props = if ($Global:showVersion) {'Name','Id','Version','Memory','CPU'} else {'Name','Id','Memory','CPU'}
+    $Global:table.Values | Select-Object -Property $props | Format-Table -AutoSize
     $diff = ((get-date) - $startTime)
     Write-Host ("Elapsed {0:00}:{1:mm}:{1:ss}  (F1) - help" -f [math]::Floor($diff.TotalHours),$diff) -f Gray
 
@@ -194,6 +199,7 @@ do {
     if ($infoCounter) {
         Write-Host "Press <C> - clear Peak/Avg/Timer" -f 7
         Write-Host "Press <N> - enter new keyword" -f 7
+        Write-Host "Press <V> - show/hide Version column" -f 7
         Write-Host "Press <L> - CSV log (every process)" -f 7
         Write-Host "Press <M> - CSV log (sum of procs)" -f 7
         Write-Host "Press <R> - Build a chart based on current CSV log" -f 7
@@ -227,6 +233,7 @@ do {
                 <#L#> 76 {if ($Global:logging) {$Global:logging = 0} elseif ($Global:table.Values | Where-Object {$_.Id -gt 0}) {$Global:logging = 1; NewLog}}
                 <#M#> 77 {if ($Global:loggingSum) {$Global:loggingSum = 0} elseif ($Global:table.Values | Where-Object {$_.Id -gt 0}) {$Global:loggingSum = 1; NewLogSum}}
                 <#N#> 78 {Zero; NewProcs}
+                <#V#> 86 {if ($Global:showVersion) {$Global:showVersion = 0} else {$Global:showVersion = 1}}
                 <#R#> 82 {
                     $path = if ($Global:logging) {$Global:logFile} 
                             elseif ($Global:loggingSum) {$Global:logFileSum}
